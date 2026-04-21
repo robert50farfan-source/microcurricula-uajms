@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Config con datos personales (nombre, email, celular, API keys)
+backend/config/settings.json
+
+# Archivos de prueba generados
+backend/*.docx
+frontend/*.docx
+
+# Build del frontend (se regenera con npm run build)
+frontend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Directorio de Claude Code
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
