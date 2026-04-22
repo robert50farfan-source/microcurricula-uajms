@@ -7,6 +7,17 @@ const path    = require('path');
 const router      = express.Router();
 const CONFIG_PATH = path.join(__dirname, '../config/settings.json');
 
+const DEFAULTS = {
+  nombreFacultad:  'FACULTAD DE INGENIERIA EN RECURSOS NATURALES Y TECNOLOGIA',
+  nombreCarrera:   'Ingeniería Informática',
+  nombreDocente:   '',
+  nombreDirector:  '',
+  numIndicadores:  3,
+  numInstrumentos: 3,
+  emailDocente:    '',
+  celDocente:      '',
+};
+
 // Campos permitidos y sus validaciones
 const SCHEMA = {
   nombreFacultad:  { type: 'string',  required: false },
@@ -20,10 +31,15 @@ const SCHEMA = {
 };
 
 function readConfig() {
-  return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+  try {
+    return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+  } catch {
+    return { ...DEFAULTS };
+  }
 }
 
 function writeConfig(data) {
+  fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(data, null, 2), 'utf8');
 }
 
