@@ -256,7 +256,7 @@ function AcercaDe() {
 
       {/* Desarrollador */}
       <section className="flex flex-col gap-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-blue-900">Responsable del Desarrollo de la App</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-blue-900">Autor del proyecto</h3>
         <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-4 flex flex-col gap-1">
           <p className="font-semibold text-slate-800 text-base">Ing. Robert Farfán</p>
           <p className="text-slate-600">
