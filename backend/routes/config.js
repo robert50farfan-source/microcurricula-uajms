@@ -8,24 +8,12 @@ const router      = express.Router();
 const CONFIG_PATH = path.join(__dirname, '../config/settings.json');
 
 const DEFAULTS = {
-  nombreFacultad:  'FACULTAD DE INGENIERIA EN RECURSOS NATURALES Y TECNOLOGIA',
-  nombreCarrera:   'Ingeniería Informática',
-  nombreDocente:   '',
-  nombreDirector:  '',
   numIndicadores:  3,
   numInstrumentos: 3,
-  emailDocente:    '',
-  celDocente:      '',
 };
 
-// Campos permitidos y sus validaciones
+// Solo campos técnicos — los datos institucionales se guardan en el navegador
 const SCHEMA = {
-  nombreFacultad:  { type: 'string',  required: false },
-  nombreCarrera:   { type: 'string',  required: true },
-  nombreDocente:   { type: 'string',  required: false },
-  emailDocente:    { type: 'string',  required: false },
-  celDocente:      { type: 'string',  required: false },
-  nombreDirector:  { type: 'string',  required: false },
   numIndicadores:  { type: 'integer', required: true, min: 1, max: 20 },
   numInstrumentos: { type: 'integer', required: true, min: 1, max: 20 },
 };
@@ -82,12 +70,6 @@ router.put('/', (req, res) => {
     const current = readConfig();
     const updated = {
       ...current,
-      nombreFacultad:  String(req.body.nombreFacultad  ?? '').trim(),
-      nombreCarrera:   String(req.body.nombreCarrera).trim(),
-      nombreDocente:   String(req.body.nombreDocente   ?? '').trim(),
-      emailDocente:    String(req.body.emailDocente    ?? '').trim(),
-      celDocente:      String(req.body.celDocente      ?? '').trim(),
-      nombreDirector:  String(req.body.nombreDirector  ?? '').trim(),
       numIndicadores:  Number(req.body.numIndicadores),
       numInstrumentos: Number(req.body.numInstrumentos),
     };

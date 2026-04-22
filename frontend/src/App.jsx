@@ -16,25 +16,13 @@ export default function App() {
   const [errorMsg, setErrorMsg] = useState('');
   const [showConfig, setShowConfig] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [nombreCarrera, setNombreCarrera] = useState('');
   const blobUrlRef = useRef(null);
 
-  // Revoke blob URL when component unmounts or a new one is generated
   useEffect(() => {
     return () => {
       if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
     };
   }, []);
-
-  // Cargar nombre de la carrera desde la configuración
-  const fetchNombreCarrera = () => {
-    fetch(`${API_BASE}/api/config`)
-      .then((r) => r.json())
-      .then((data) => setNombreCarrera(data.nombreCarrera ?? ''))
-      .catch(() => { });
-  };
-
-  useEffect(() => { fetchNombreCarrera(); }, []);
 
   const handleFileSelected = (selectedFile) => {
     setFile(selectedFile);
@@ -60,6 +48,16 @@ export default function App() {
       return;
     }
 
+    const inst = JSON.parse(localStorage.getItem('inst_config') ?? '{}');
+    const missingInst = [];
+    if (!inst.nombreFacultad?.trim()) missingInst.push('Nombre de la Facultad');
+    if (!inst.nombreCarrera?.trim())  missingInst.push('Nombre de la carrera');
+    if (missingInst.length) {
+      setErrorMsg(`Completa los datos institucionales antes de generar: ${missingInst.join(' y ')} (icono ⚙ arriba a la derecha).`);
+      setStatus('error');
+      return;
+    }
+
     setStatus('uploading');
     setProgressMsg('Enviando archivo al servidor...');
     setErrorMsg('');
@@ -73,8 +71,15 @@ export default function App() {
       const formData = new FormData();
       formData.append('pdf', file);
 
-      // Adjuntar la malla propia del usuario (guardada en localStorage)
-      // para que el servidor use la del request y no la del archivo compartido
+      // Datos institucionales del navegador → request
+      formData.append('nombreFacultad',  inst.nombreFacultad  ?? '');
+      formData.append('nombreCarrera',   inst.nombreCarrera   ?? '');
+      formData.append('nombreDocente',   inst.nombreDocente   ?? '');
+      formData.append('emailDocente',    inst.emailDocente    ?? '');
+      formData.append('celDocente',      inst.celDocente      ?? '');
+      formData.append('nombreDirector',  inst.nombreDirector  ?? '');
+
+      // Malla propia del usuario (guardada en localStorage)
       const mallaData = localStorage.getItem('malla_custom_data');
       if (mallaData) formData.append('mallaJson', mallaData);
 
@@ -113,7 +118,7 @@ export default function App() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
 
       {/* ── Modals ─────────────────────────────────────────────────────── */}
-      {showConfig && <ConfigPanel onClose={() => { setShowConfig(false); fetchNombreCarrera(); }} />}
+      {showConfig && <ConfigPanel onClose={() => setShowConfig(false)} />}
       {showHelp && <HelpPanel onClose={() => setShowHelp(false)} />}
 
       {/* ── Header ─────────────────────────────────────────────────────── */}

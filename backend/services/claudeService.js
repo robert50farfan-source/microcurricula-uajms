@@ -21,12 +21,11 @@ function getConfig() {
 // Prompts
 // ─────────────────────────────────────────────────────────────────────────────
 
-function buildSystemPrompt(malla) {
+function buildSystemPrompt(malla, institucional = {}) {
   const carreraCtx = malla
     ? `Carrera de ${malla.carrera}`
     : 'la carrera indicada en el programa docente';
-  const cfg = getConfig();
-  const facultad = cfg.nombreFacultad || 'FACULTAD DE INGENIERIA EN RECURSOS NATURALES Y TECNOLOGIA';
+  const facultad = institucional.nombreFacultad || 'FACULTAD DE INGENIERIA EN RECURSOS NATURALES Y TECNOLOGIA';
   return `Eres un experto en diseño curricular por competencias de la Universidad Autónoma \
 Juan Misael Saracho (UAJMS), ${facultad}, ${carreraCtx}. \
 Tu tarea es generar un Proyecto Formativo completo y detallado siguiendo EXACTAMENTE la plantilla \
@@ -40,19 +39,18 @@ institucional. Debes responder ÚNICAMENTE con un objeto JSON válido sin markdo
  * @param {string} textoProgramaDocente - Texto plano extraído del PDF
  * @param {Object} datosAsignatura      - Datos extra opcionales (nombre, sigla, semestre…)
  */
-async function buildUserPrompt(textoProgramaDocente, datosAsignatura = {}, numECs = null, malla) {
+async function buildUserPrompt(textoProgramaDocente, datosAsignatura = {}, numECs = null, malla, institucional = {}) {
   const cfg = getConfig();
   const hasMalla = malla !== null;
 
   const carreraDisplay = hasMalla
     ? malla.carrera
-    : (cfg.nombreCarrera ?? 'la carrera indicada en el programa docente');
+    : (institucional.nombreCarrera || cfg.nombreCarrera || 'la carrera indicada en el programa docente');
 
-  // Merge config values as authoritative institutional data
   const datosFinales = {
     carrera: carreraDisplay,
-    ...(cfg.nombreDocente ? { docente: cfg.nombreDocente } : {}),
-    ...(cfg.nombreDirector ? { director: cfg.nombreDirector } : {}),
+    ...(institucional.nombreDocente  ? { docente: institucional.nombreDocente }   : {}),
+    ...(institucional.nombreDirector ? { director: institucional.nombreDirector } : {}),
     ...datosAsignatura,
   };
 
@@ -91,8 +89,8 @@ ${textoProgramaDocente}
 
 === CONFIGURACIÓN INSTITUCIONAL (valores oficiales — usar exactamente) ===
 - Nombre de la carrera: ${carreraDisplay}
-${cfg.nombreDocente ? `- Nombre del docente: ${cfg.nombreDocente}` : '- Nombre del docente: (extraer del PDF si está disponible)'}
-${cfg.nombreDirector ? `- Nombre del director: ${cfg.nombreDirector}` : '- Nombre del director: (dejar vacío si no se conoce)'}
+${institucional.nombreDocente ? `- Nombre del docente: ${institucional.nombreDocente}` : '- Nombre del docente: (extraer del PDF si está disponible)'}
+${institucional.nombreDirector ? `- Nombre del director: ${institucional.nombreDirector}` : '- Nombre del director: (dejar vacío si no se conoce)'}
 - Número de indicadores de evaluación por elemento de competencia: ${cfg.numIndicadores}
 - Número de instrumentos de evaluación por elemento de competencia: ${cfg.numInstrumentos}
 
@@ -130,7 +128,7 @@ Responde ÚNICAMENTE con el siguiente JSON, sin markdown, sin texto antes ni des
 
 {
   "identificacion": {
-    "facultad": "${cfg.nombreFacultad || 'FACULTAD DE INGENIERIA EN RECURSOS NATURALES Y TECNOLOGIA'}",
+    "facultad": "${institucional.nombreFacultad || 'FACULTAD DE INGENIERIA EN RECURSOS NATURALES Y TECNOLOGIA'}",
     "carrera": ${carreraJSON},
     "semestre": "<número ordinal, ej: Primero>",
     "asignatura": "<nombre completo de la asignatura>",
@@ -447,7 +445,7 @@ function validateResponse(data) {
  * @param {Object} [datosAsignatura={}]  - Metadatos adicionales (nombre, sigla, semestre…)
  * @returns {Promise<Object>}            - Objeto JSON estructurado del proyecto formativo
  */
-async function generateProyectoFormativo(textoProgramaDocente, datosAsignatura = {}, numECs = null, apiKey, malla) {
+async function generateProyectoFormativo(textoProgramaDocente, datosAsignatura = {}, numECs = null, apiKey, malla, institucional = {}) {
   if (!apiKey || !apiKey.trim()) {
     throw new Error('No se ha configurado la clave de API de Anthropic. Ingresala en Configuración.');
   }
@@ -459,14 +457,14 @@ async function generateProyectoFormativo(textoProgramaDocente, datosAsignatura =
   const client = new Anthropic({ apiKey: apiKey.trim() });
 
   console.log(`[claudeService] malla=${malla ? `"${malla.carrera}"` : 'null (sin malla, se usará descripción textual)'}`);
-  const userPrompt = await buildUserPrompt(textoProgramaDocente, datosAsignatura, numECs, malla);
+  const userPrompt = await buildUserPrompt(textoProgramaDocente, datosAsignatura, numECs, malla, institucional);
 
   let message;
   try {
     message = await client.messages.create({
       model: MODELO,
       max_tokens: 16000,
-      system: buildSystemPrompt(malla),
+      system: buildSystemPrompt(malla, institucional),
       messages: [{ role: 'user', content: userPrompt }],
     });
   } catch (apiError) {
@@ -527,8 +525,8 @@ async function generateProyectoFormativo(textoProgramaDocente, datosAsignatura =
   // Validar campos obligatorios y restricciones numéricas
   validateResponse(data);
 
-  // Adjuntar la malla para que docxGenerator la use directamente
-  data._mallaData = malla ?? null;
+  data._mallaData      = malla ?? null;
+  data._institucional  = institucional;
 
   return data;
 }

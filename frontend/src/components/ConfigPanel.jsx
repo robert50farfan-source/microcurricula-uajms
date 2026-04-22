@@ -5,7 +5,19 @@ const CONFIG_URL = `${API_BASE}/api/config`;
 const MALLA_URL  = `${API_BASE}/api/malla`;
 
 export default function ConfigPanel({ onClose }) {
-  const [form, setForm]     = useState(null);
+  const [form, setForm] = useState(() => {
+    const inst = JSON.parse(localStorage.getItem('inst_config') ?? '{}');
+    return {
+      nombreFacultad:  inst.nombreFacultad  ?? '',
+      nombreCarrera:   inst.nombreCarrera   ?? '',
+      nombreDocente:   inst.nombreDocente   ?? '',
+      emailDocente:    inst.emailDocente    ?? '',
+      celDocente:      inst.celDocente      ?? '',
+      nombreDirector:  inst.nombreDirector  ?? '',
+      numIndicadores:  3,
+      numInstrumentos: 3,
+    };
+  });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg]       = useState(null); // { type: 'ok'|'error', text }
 
@@ -20,10 +32,15 @@ export default function ConfigPanel({ onClose }) {
   const [mallaMsg,       setMallaMsg]       = useState(null); // { type, text }
 
   useEffect(() => {
+    // Solo carga los campos técnicos desde el servidor
     fetch(CONFIG_URL)
       .then((r) => r.json())
-      .then((data) => setForm(data))
-      .catch(() => setMsg({ type: 'error', text: 'No se pudo cargar la configuración.' }));
+      .then((data) => setForm((prev) => ({
+        ...prev,
+        numIndicadores:  data.numIndicadores  ?? 3,
+        numInstrumentos: data.numInstrumentos ?? 3,
+      })))
+      .catch(() => {});
 
     fetch(MALLA_URL)
       .then((r) => r.json())
@@ -89,18 +106,28 @@ export default function ConfigPanel({ onClose }) {
     setSaving(true);
     setMsg(null);
     try {
-      // Guardar API key en localStorage (nunca se envía al servidor)
+      // API key → localStorage
       if (apiKey.trim()) {
         localStorage.setItem('anthropic_api_key', apiKey.trim());
       } else {
         localStorage.removeItem('anthropic_api_key');
       }
 
+      // Datos institucionales → localStorage (privados por navegador)
+      localStorage.setItem('inst_config', JSON.stringify({
+        nombreFacultad:  form.nombreFacultad,
+        nombreCarrera:   form.nombreCarrera,
+        nombreDocente:   form.nombreDocente,
+        emailDocente:    form.emailDocente,
+        celDocente:      form.celDocente,
+        nombreDirector:  form.nombreDirector,
+      }));
+
+      // Datos técnicos → servidor
       const res = await fetch(CONFIG_URL, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
           numIndicadores:  Number(form.numIndicadores),
           numInstrumentos: Number(form.numInstrumentos),
         }),

@@ -231,10 +231,11 @@ function checkboxRow(label, checked = false) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 // ── ENCABEZADO ────────────────────────────────────────────────────────────────
-function buildHeader() {
-  const cfg = getConfig();
-  const facultad = (cfg.nombreFacultad ?? 'FACULTAD DE INGENIERIA EN RECURSOS NATURALES Y TECNOLOGÍA').toUpperCase();
-  const carrera  = (cfg.nombreCarrera  ?? 'INGENIERÍA INFORMÁTICA').toUpperCase();
+function buildHeader(data) {
+  const cfg  = getConfig();
+  const inst = data._institucional ?? {};
+  const facultad = (inst.nombreFacultad || cfg.nombreFacultad || 'FACULTAD DE INGENIERIA EN RECURSOS NATURALES Y TECNOLOGÍA').toUpperCase();
+  const carrera  = (inst.nombreCarrera  || cfg.nombreCarrera  || 'INGENIERÍA INFORMÁTICA').toUpperCase();
 
   const c1 = Math.round(CW * 0.70);
   const c2 = CW - c1;
@@ -262,9 +263,10 @@ function buildHeader() {
 
 // ── I. IDENTIFICACIÓN ─────────────────────────────────────────────────────────
 function buildIdentificacion(data) {
-  const id  = data.identificacion ?? {};
-  const ch  = id.cargaHoraria ?? {};
-  const cfg = getConfig();
+  const id   = data.identificacion ?? {};
+  const ch   = id.cargaHoraria ?? {};
+  const cfg  = getConfig();
+  const inst = data._institucional ?? {};
 
   // ── Grilla base de 6 columnas iguales (MCM de 3 y 2)
   // Fila 1: 3 celdas × 2 cols cada una  → 1/3 cada una  ✓
@@ -292,9 +294,9 @@ function buildIdentificacion(data) {
   const horasAuto = String(id.horasAutonomo ?? '—');
 
   // Datos del docente: extrae Claude del PDF, fallback a configuración
-  const docenteNombre = String(id.nombreDocente || cfg.nombreDocente || '').trim();
-  const docenteEmail  = String(id.emailDocente  || cfg.emailDocente  || '').trim();
-  const docenteCel    = String(id.celDocente    || cfg.celDocente    || '').trim();
+  const docenteNombre = String(id.nombreDocente || inst.nombreDocente || cfg.nombreDocente || '').trim();
+  const docenteEmail  = String(id.emailDocente  || inst.emailDocente  || cfg.emailDocente  || '').trim();
+  const docenteCel    = String(id.celDocente    || inst.celDocente    || cfg.celDocente    || '').trim();
 
   const docenteParas = [
     new Paragraph({
@@ -326,8 +328,8 @@ function buildIdentificacion(data) {
     rows: [
       // Fila 1: tres tercios iguales (2 cols cada una)
       new TableRow({ children: [
-        lv('1. FACULTAD',     cfg.nombreFacultad ?? id.facultad  ?? '', { w: 2 * Wc,        colspan: 2 }),
-        lv('2. CARRERA',      cfg.nombreCarrera  ?? id.carrera   ?? '', { w: 2 * Wc,        colspan: 2 }),
+        lv('1. FACULTAD',     inst.nombreFacultad || cfg.nombreFacultad || id.facultad  || '', { w: 2 * Wc,        colspan: 2 }),
+        lv('2. CARRERA',      inst.nombreCarrera  || cfg.nombreCarrera  || id.carrera   || '', { w: 2 * Wc,        colspan: 2 }),
         lv('3. SEMESTRE/AÑO', id.semestre  ?? '', { w: Wc + Wc6,      colspan: 2 }),
       ]}),
       // Fila 2: dos mitades iguales (3 cols cada una)
@@ -920,10 +922,11 @@ function buildRecursos(data) {
 }
 
 // ── FIRMA ─────────────────────────────────────────────────────────────────────
-function buildFirma(_data) {
-  const cfg = getConfig();
-  const docente = cfg.nombreDocente ?? '';
-  const director = cfg.nombreDirector ?? '';
+function buildFirma(data) {
+  const cfg  = getConfig();
+  const inst = data._institucional ?? {};
+  const docente  = inst.nombreDocente  || cfg.nombreDocente  || '';
+  const director = inst.nombreDirector || cfg.nombreDirector || '';
   const W = Math.floor(CW / 2);
   const noBorders = { top: noBrd(), bottom: noBrd(), left: noBrd(), right: noBrd() };
 
@@ -965,7 +968,7 @@ function buildFirma(_data) {
  */
 async function generateDocx(proyectoData) {
   const children = [
-    ...buildHeader(),
+    ...buildHeader(proyectoData),
     ...buildIdentificacion(proyectoData),
     ...buildMallaCurricular(proyectoData),
     ...buildCompetencias(proyectoData),

@@ -37,11 +37,18 @@ router.post('/', upload.single('pdf'), async (req, res) => {
     return res.status(400).json({ error: 'No se recibió ningún archivo. Envía el PDF en el campo "pdf".' });
   }
 
-  // 1b. Validar que la configuración tiene los campos institucionales obligatorios
-  const cfg = readConfig();
+  // 1b. Leer datos institucionales enviados por el cliente (guardados en su navegador)
+  const institucional = {
+    nombreFacultad: (req.body.nombreFacultad ?? '').trim(),
+    nombreCarrera:  (req.body.nombreCarrera  ?? '').trim(),
+    nombreDocente:  (req.body.nombreDocente  ?? '').trim(),
+    emailDocente:   (req.body.emailDocente   ?? '').trim(),
+    celDocente:     (req.body.celDocente     ?? '').trim(),
+    nombreDirector: (req.body.nombreDirector ?? '').trim(),
+  };
   const missingFields = [];
-  if (!cfg.nombreFacultad?.trim()) missingFields.push('Nombre de la Facultad');
-  if (!cfg.nombreCarrera?.trim())  missingFields.push('Nombre de la carrera');
+  if (!institucional.nombreFacultad) missingFields.push('Nombre de la Facultad');
+  if (!institucional.nombreCarrera)  missingFields.push('Nombre de la carrera');
   if (missingFields.length) {
     return res.status(400).json({
       error: `Completa los siguientes campos en Configuración antes de generar: ${missingFields.join(', ')}.`,
@@ -77,7 +84,7 @@ router.post('/', upload.single('pdf'), async (req, res) => {
     }
 
     const apiKey = req.headers['x-api-key'];
-    const datosProyecto = await generateProyectoFormativo(textoPDF, {}, numECsDetectados, apiKey, malla);
+    const datosProyecto = await generateProyectoFormativo(textoPDF, {}, numECsDetectados, apiKey, malla, institucional);
 
     // 4. Construir el documento Word
     const docxBuffer = await generateDocx(datosProyecto);
