@@ -179,7 +179,7 @@ Responde ÚNICAMENTE con el siguiente JSON, sin markdown, sin texto antes ni des
       },
       "unidadesAprendizaje": [
         {
-          "nombre": "<título exacto de la unidad de aprendizaje como figura en el programa docente>",
+          "nombre": "<título exacto de la unidad asignada a ESTE EC en el programa docente — NO incluir unidades de otros ECs>",
           "contenido": ["<Título tema 1>", "<Título tema 2>", "<Título tema 3>", "<Título tema 4>"]
         }
       ],
@@ -259,10 +259,11 @@ REGLAS OBLIGATORIAS:
       ? `El array "elementosDeCompetencia" DEBE contener EXACTAMENTE ${numECs} objetos (detectado en el PDF). Combinar o suprimir elementos es un error grave.`
       : 'El número de elementosDeCompetencia debe coincidir exactamente con los que indica el programa docente. No agregar ni omitir ninguno.'}
 7. Todo el contenido debe estar en español formal y académico.
-8. El campo "unidadesAprendizaje" de cada elemento de competencia:
-   a) Extrae el nombre o nombres de la(s) unidad(es) de aprendizaje EXACTAMENTE como figuran en el programa docente (puede ser solo el título, ej: "Unidad 1: Introducción a…").
-   b) Si el programa docente define más de una unidad de aprendizaje para el mismo elemento de competencia, inclúyelas TODAS como objetos separados dentro del array "unidadesAprendizaje".
-   c) El array "contenido" de cada unidad debe contener SOLO títulos de temas (sin subtemas, sin numeración, sin puntos). Mínimo 4 títulos y máximo 8 títulos por unidad.
+8. El campo "unidadesAprendizaje" de cada elemento de competencia — CORRESPONDENCIA EXACTA:
+   a) REGLA CRÍTICA DE CORRESPONDENCIA: cada EC incluye ÚNICAMENTE las unidades de aprendizaje que el programa docente le asigna explícitamente a ÉSE EC. NUNCA repitas ni copies unidades de otros ECs. Si el EC5 tiene asignada solo "Unidad 5: …", su array "unidadesAprendizaje" contiene SOLO ese objeto. Asignar todas las unidades a un EC cuando solo le corresponde una es un error grave.
+   b) Extrae el nombre de cada unidad EXACTAMENTE como figura en el programa docente (ej: "Unidad 5: Organografía vegetal II, Flor fruto y semilla, Polinización y fertilización").
+   c) Si el programa docente asigna más de una unidad al mismo EC, inclúyelas TODAS como objetos separados; si solo le asigna una, incluye solo esa.
+   d) El array "contenido" de cada unidad debe contener SOLO títulos de temas (sin subtemas, sin numeración, sin puntos). Mínimo 4 títulos y máximo 8 títulos por unidad.
 9. Responde ÚNICAMENTE con el JSON. Sin texto antes, sin markdown, sin explicaciones.
 `.trim();
 }

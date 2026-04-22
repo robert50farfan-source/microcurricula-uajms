@@ -9,7 +9,7 @@ const router  = express.Router();
 const { extractTextFromPDF, countElementosDeCompetencia } = require('../services/pdfExtractor');
 const { generateProyectoFormativo } = require('../services/claudeService');
 const { generateDocx }              = require('../services/docxGenerator');
-const { resolveClaveCarrera, getMalla } = require('../data/mallas');
+// mallas no se necesita aquí: la malla siempre viene del cliente (localStorage)
 
 const CONFIG_PATH = path.join(__dirname, '../config/settings.json');
 function readConfig() {
@@ -65,22 +65,16 @@ router.post('/', upload.single('pdf'), async (req, res) => {
       console.log(`[generate] ECs detectados en el PDF: ${numECsDetectados}`);
     }
 
-    // 3. Resolver malla: priorizar la que viene del cliente (por request) para
-    //    garantizar aislamiento entre usuarios concurrentes. Si no viene, caer
-    //    a la malla estática resuelta por config del servidor.
+    // 3. Malla: solo se usa si el cliente la envía explícitamente (desde localStorage).
+    //    Si no viene, malla=null → sección 12 muestra descripción textual.
     let malla = null;
     if (req.body?.mallaJson) {
       try {
         malla = JSON.parse(req.body.mallaJson);
         console.log(`[generate] malla recibida del cliente: "${malla?.carrera}"`);
       } catch {
-        console.warn('[generate] mallaJson inválido, se usará malla estática');
+        console.warn('[generate] mallaJson inválido, se generará sin malla (descripción textual).');
       }
-    }
-    if (!malla) {
-      const claveCarrera = resolveClaveCarrera();
-      malla = getMalla(claveCarrera);
-      console.log(`[generate] malla estática resuelta: "${malla?.carrera ?? 'ninguna'}"`);
     }
 
     const apiKey = req.headers['x-api-key'];
