@@ -258,17 +258,11 @@ function AcercaDe() {
       <section className="flex flex-col gap-2">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-blue-900">Autor del proyecto</h3>
         <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-4 flex flex-col gap-1">
-          <p className="font-semibold text-slate-800 text-base">Ing. Robert Farfán</p>
+          <p className="font-semibold text-slate-800 text-base">Ing. Luis Robert Farfán Sivila</p>
           <p className="text-slate-600">
-            Docente de la Carrera de <strong>Ingeniería Informática</strong>
-          </p>
-          <p className="text-slate-600">
-            Facultad de Ingeniería de Recursos Naturales y Tecnología —{' '}
-            <strong>FIRNT</strong>
-          </p>
-          <p className="text-slate-600">
-            Universidad Autónoma Juan Misael Saracho —{' '}
-            <strong>UAJMS</strong>, Tarija, Bolivia
+            Docente de la Carrera de <strong>Ingeniería Informática</strong>, Facultad de Ingeniería
+            de Recursos Naturales y Tecnología — <strong>FIRNT</strong>, Universidad Autónoma Juan
+            Misael Saracho — <strong>UAJMS</strong>, Tarija, Bolivia.
           </p>
         </div>
       </section>
