@@ -72,4 +72,45 @@ function countElementosDeCompetencia(text) {
   return numbers.size; // cantidad de ECs únicos detectados
 }
 
-module.exports = { extractTextFromPDF, countElementosDeCompetencia };
+/**
+ * Extrae la lista ordenada de Unidades de Aprendizaje del texto del programa docente.
+ * Devuelve un array de { ua: number, titulo: string } ordenado por número de UA,
+ * o null si no se encontraron suficientes unidades.
+ *
+ * @param {string} text - Texto plano extraído del PDF
+ * @returns {Array<{ua:number, titulo:string}>|null}
+ */
+function extractUnidadesAprendizaje(text) {
+  const found = new Map(); // uaNum → titulo (solo primera ocurrencia)
+
+  // Patrón principal: "UNIDAD DE APRENDIZAJE N [: titulo]"
+  // Maneja: "UNIDAD DE APRENDIZAJE 1: Título", "UNIDAD DE APRENDIZAJE 1\nTítulo"
+  const mainRegex = /unidad\s+de\s+aprendizaje\s*(?:n[°º]?\s*)?(\d+)\s*[:\.\-–]?\s*(.*?)(?=\n|$)/gi;
+  let m;
+  while ((m = mainRegex.exec(text)) !== null) {
+    const uaNum = parseInt(m[1], 10);
+    if (uaNum <= 0 || uaNum > 30 || found.has(uaNum)) continue;
+
+    let titulo = m[2].trim();
+
+    // Si el título en la misma línea es vacío o muy corto, buscar en la siguiente línea no vacía
+    if (titulo.length < 4) {
+      const rest = text.slice(m.index + m[0].length);
+      const nextLine = rest.match(/^\s*\n\s*([A-ZÁÉÍÓÚÑa-záéíóúñ][^\n]{3,})/);
+      if (nextLine) titulo = nextLine[1].trim();
+    }
+
+    // Limpiar numeraciones residuales al inicio (ej: "1. Introducción" → "Introducción")
+    titulo = titulo.replace(/^\d+[\.\-\)]\s*/, '').trim();
+
+    if (titulo.length >= 4) found.set(uaNum, titulo);
+  }
+
+  if (found.size < 2) return null;
+
+  return Array.from(found.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([ua, titulo]) => ({ ua, titulo }));
+}
+
+module.exports = { extractTextFromPDF, countElementosDeCompetencia, extractUnidadesAprendizaje };

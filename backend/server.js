@@ -6,11 +6,14 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 
-const generateRouter  = require('./routes/generate');
-const configRouter    = require('./routes/config');
-const carrerasRouter  = require('./routes/carreras');
-const mallaRouter     = require('./routes/malla');
-const { preloadFuentes } = require('./services/fuentesLoader');
+const generateRouter      = require('./routes/generate');
+const configRouter        = require('./routes/config');
+const carrerasRouter      = require('./routes/carreras');
+const mallaRouter         = require('./routes/malla');
+const universidadesRouter = require('./routes/universidades');
+const adminRouter         = require('./routes/admin');
+const statsRouter         = require('./routes/stats');
+const { preloadFuentes }  = require('./services/fuentesLoader');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -29,10 +32,13 @@ app.use(express.urlencoded({ extended: true }));
 
 // ─── Rutas ────────────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
-app.use('/api/generate',  generateRouter);
-app.use('/api/config',    configRouter);
-app.use('/api/carreras',  carrerasRouter);
-app.use('/api/malla',     mallaRouter);
+app.use('/api/generate',      generateRouter);
+app.use('/api/config',        configRouter);
+app.use('/api/carreras',      carrerasRouter);
+app.use('/api/malla',         mallaRouter);
+app.use('/api/universidades', universidadesRouter);
+app.use('/api/admin',        adminRouter);
+app.use('/api/admin/stats',  statsRouter);
 
 // ─── Manejo global de errores ─────────────────────────────────────────────────
 // Errores de multer (límite de tamaño, tipo de archivo no permitido)

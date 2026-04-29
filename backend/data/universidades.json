@@ -1,0 +1,19 @@
+[
+  {
+    "id": "uajms",
+    "nombre": "Universidad Autónoma Juan Misael Saracho",
+    "sigla": "UAJMS",
+    "facultades": [
+      {
+        "id": "firnt",
+        "nombre": "FACULTAD DE INGENIERIA EN RECURSOS NATURALES Y TECNOLOGIA",
+        "carreras": [
+          { "id": "informatica",  "nombre": "Ingeniería Informática" },
+          { "id": "agronomia",    "nombre": "Ingeniería Agronómica" },
+          { "id": "hidricos",     "nombre": "Ingeniería en Recursos Hídricos" },
+          { "id": "ambiental",    "nombre": "Ingeniería Sanitaria y Ambiental" }
+        ]
+      }
+    ]
+  }
+]

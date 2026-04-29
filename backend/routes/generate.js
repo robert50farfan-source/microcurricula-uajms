@@ -6,9 +6,10 @@ const fs      = require('fs');
 const path    = require('path');
 const router  = express.Router();
 
-const { extractTextFromPDF, countElementosDeCompetencia } = require('../services/pdfExtractor');
+const { extractTextFromPDF, countElementosDeCompetencia, extractUnidadesAprendizaje } = require('../services/pdfExtractor');
 const { generateProyectoFormativo } = require('../services/claudeService');
 const { generateDocx }              = require('../services/docxGenerator');
+const { registrarEvento }           = require('../services/statsService');
 // mallas no se necesita aquí: la malla siempre viene del cliente (localStorage)
 
 const CONFIG_PATH = path.join(__dirname, '../config/settings.json');
@@ -39,12 +40,13 @@ router.post('/', upload.single('pdf'), async (req, res) => {
 
   // 1b. Leer datos institucionales enviados por el cliente (guardados en su navegador)
   const institucional = {
-    nombreFacultad: (req.body.nombreFacultad ?? '').trim(),
-    nombreCarrera:  (req.body.nombreCarrera  ?? '').trim(),
-    nombreDocente:  (req.body.nombreDocente  ?? '').trim(),
-    emailDocente:   (req.body.emailDocente   ?? '').trim(),
-    celDocente:     (req.body.celDocente     ?? '').trim(),
-    nombreDirector: (req.body.nombreDirector ?? '').trim(),
+    nombreUniversidad: (req.body.nombreUniversidad ?? '').trim(),
+    nombreFacultad:    (req.body.nombreFacultad    ?? '').trim(),
+    nombreCarrera:     (req.body.nombreCarrera     ?? '').trim(),
+    nombreDocente:     (req.body.nombreDocente     ?? '').trim(),
+    emailDocente:      (req.body.emailDocente      ?? '').trim(),
+    celDocente:        (req.body.celDocente        ?? '').trim(),
+    nombreDirector:    (req.body.nombreDirector    ?? '').trim(),
   };
   const missingFields = [];
   if (!institucional.nombreFacultad) missingFields.push('Nombre de la Facultad');
@@ -65,6 +67,14 @@ router.post('/', upload.single('pdf'), async (req, res) => {
       console.log(`[generate] ECs detectados en el PDF: ${numECsDetectados}`);
     }
 
+    // 2c. Extraer mapa UA→título para inyectarlo como restricción irrompible en el prompt
+    const uaMapping = extractUnidadesAprendizaje(textoPDF);
+    if (uaMapping) {
+      console.log(`[generate] UAs extraídas del PDF: ${uaMapping.map(u => `UA${u.ua}="${u.titulo}"`).join(', ')}`);
+    } else {
+      console.warn('[generate] No se pudo extraer el mapa UA→título del PDF. Claude inferirá la asignación.');
+    }
+
     // 3. Malla: solo se usa si el cliente la envía explícitamente (desde localStorage).
     //    Si no viene, malla=null → sección 12 muestra descripción textual.
     let malla = null;
@@ -78,7 +88,17 @@ router.post('/', upload.single('pdf'), async (req, res) => {
     }
 
     const apiKey = req.headers['x-api-key'];
-    const datosProyecto = await generateProyectoFormativo(textoPDF, {}, numECsDetectados, apiKey, malla, institucional);
+    const datosProyecto = await generateProyectoFormativo(textoPDF, {}, numECsDetectados, apiKey, malla, institucional, uaMapping);
+
+    // Registrar evento exitoso en el log de estadísticas
+    registrarEvento({
+      universidad: institucional.nombreUniversidad,
+      facultad:    institucional.nombreFacultad,
+      carrera:     institucional.nombreCarrera,
+      docente:     institucional.nombreDocente,
+      asignatura:  datosProyecto?.identificacion?.asignatura ?? '',
+      exito:       true,
+    });
 
     // 4. Construir el documento Word
     const docxBuffer = await generateDocx(datosProyecto);
@@ -90,6 +110,17 @@ router.post('/', upload.single('pdf'), async (req, res) => {
     return res.send(docxBuffer);
 
   } catch (err) {
+    // Registrar evento fallido
+    registrarEvento({
+      universidad: institucional?.nombreUniversidad ?? '',
+      facultad:    institucional?.nombreFacultad    ?? '',
+      carrera:     institucional?.nombreCarrera     ?? '',
+      docente:     institucional?.nombreDocente     ?? '',
+      asignatura:  '',
+      exito:       false,
+      error:       err.message,
+    });
+
     // Distinguir errores de Claude vs errores generales para dar mensajes claros
     const isClaude = err.message?.toLowerCase().includes('anthropic') ||
                      err.message?.toLowerCase().includes('claude') ||

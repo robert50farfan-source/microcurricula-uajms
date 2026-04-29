@@ -25,9 +25,9 @@ function buildSystemPrompt(malla, institucional = {}) {
   const carreraCtx = malla
     ? `Carrera de ${malla.carrera}`
     : 'la carrera indicada en el programa docente';
-  const facultad = institucional.nombreFacultad || 'FACULTAD DE INGENIERIA EN RECURSOS NATURALES Y TECNOLOGIA';
-  return `Eres un experto en diseño curricular por competencias de la Universidad Autónoma \
-Juan Misael Saracho (UAJMS), ${facultad}, ${carreraCtx}. \
+  const facultad      = institucional.nombreFacultad    || 'FACULTAD DE INGENIERIA EN RECURSOS NATURALES Y TECNOLOGIA';
+  const universidad   = institucional.nombreUniversidad || 'Universidad Autónoma Juan Misael Saracho (UAJMS)';
+  return `Eres un experto en diseño curricular por competencias de la ${universidad}, ${facultad}, ${carreraCtx}. \
 Tu tarea es generar un Proyecto Formativo completo y detallado siguiendo EXACTAMENTE la plantilla \
 institucional. Debes responder ÚNICAMENTE con un objeto JSON válido sin markdown ni texto adicional.`;
 }
@@ -39,7 +39,38 @@ institucional. Debes responder ÚNICAMENTE con un objeto JSON válido sin markdo
  * @param {string} textoProgramaDocente - Texto plano extraído del PDF
  * @param {Object} datosAsignatura      - Datos extra opcionales (nombre, sigla, semestre…)
  */
-async function buildUserPrompt(textoProgramaDocente, datosAsignatura = {}, numECs = null, malla, institucional = {}) {
+/**
+ * Construye el bloque de tabla EC→UA a inyectar en el prompt cuando tenemos
+ * la información pre-extraída del PDF.
+ *
+ * @param {Array<{ua:number, titulo:string}>|null} uaMapping
+ * @returns {string|null}
+ */
+function buildUaMapBlock(uaMapping) {
+  if (!uaMapping || uaMapping.length === 0) return null;
+
+  const filas = uaMapping
+    .map(({ ua, titulo }) => `  EC${ua} → UA${ua}: "${titulo}"`)
+    .join('\n');
+
+  const ejemplo1 = uaMapping[Math.min(1, uaMapping.length - 1)];
+  const ejemplo2 = uaMapping[Math.min(2, uaMapping.length - 1)];
+
+  return `=== TABLA EC→UA EXTRAÍDA AUTOMÁTICAMENTE DEL PDF ===
+Esta tabla es la fuente de verdad absoluta para asignar unidades a elementos de competencia.
+${filas}
+
+⚠️ RESTRICCIÓN ABSOLUTA — se aplica antes que cualquier otra instrucción:
+• EC_N contiene EXACTAMENTE la UA_N de esta tabla y NINGUNA OTRA.
+• NUNCA combines dos UAs en un mismo EC (ej: poner UA${ejemplo1.ua} y UA${ejemplo2.ua} juntas en EC${ejemplo1.ua} está PROHIBIDO).
+• NUNCA dejes vacío el campo unidadesAprendizaje de un EC que aparece en esta tabla.
+• NUNCA dupliques una UA en dos ECs distintos.
+• Si esta tabla dice EC${ejemplo1.ua} → "${ejemplo1.titulo}", entonces
+  elementosDeCompetencia[${ejemplo1.ua - 1}].unidadesAprendizaje = [{ "nombre": "${ejemplo1.titulo}", "contenido": [...] }]
+  y nada más.`;
+}
+
+async function buildUserPrompt(textoProgramaDocente, datosAsignatura = {}, numECs = null, malla, institucional = {}, uaMapping = null) {
   const cfg = getConfig();
   const hasMalla = malla !== null;
 
@@ -118,6 +149,8 @@ la redacción y la estructura de cada sección:
 
 ${await buildFuentesPromptBlock() ?? '(No se encontraron documentos de referencia en backend/data/fuentes.)'}
 
+${buildUaMapBlock(uaMapping) ?? ''}
+
 === INSTRUCCIÓN ===
 ${numECs
       ? `⚠️ RESTRICCIÓN IRROMPIBLE: El programa docente contiene EXACTAMENTE ${numECs} Elemento(s) de Competencia. El array "elementosDeCompetencia" del JSON de salida DEBE tener EXACTAMENTE ${numECs} objeto(s). No combinar, no omitir, no dividir ninguno. Si generas un número diferente a ${numECs}, la respuesta es inválida.`
@@ -128,6 +161,7 @@ Responde ÚNICAMENTE con el siguiente JSON, sin markdown, sin texto antes ni des
 
 {
   "identificacion": {
+    "universidad": "${institucional.nombreUniversidad || 'Universidad Autónoma Juan Misael Saracho'}",
     "facultad": "${institucional.nombreFacultad || 'FACULTAD DE INGENIERIA EN RECURSOS NATURALES Y TECNOLOGIA'}",
     "carrera": ${carreraJSON},
     "semestre": "<número ordinal, ej: Primero>",
@@ -256,14 +290,41 @@ REGLAS OBLIGATORIAS:
    EJEMPLO: horasDocente=120, 4 ECs → cada EC.distribucionHoraria.teoria=30, suma=120 ✓. Si hubiera 3 ECs → EC1.teoria=40, EC2.teoria=40, EC3.teoria=40, suma=120 ✓.
    NUNCA asignar el total de la asignatura a cada EC individual.
 6. ${numECs
-      ? `El array "elementosDeCompetencia" DEBE contener EXACTAMENTE ${numECs} objetos (detectado en el PDF). Combinar o suprimir elementos es un error grave.`
+      ? `El array "elementosDeCompetencia" DEBE contener EXACTAMENTE ${numECs} objetos (detectado en el PDF). Combinar, suprimir o dividir elementos es un error grave.`
       : 'El número de elementosDeCompetencia debe coincidir exactamente con los que indica el programa docente. No agregar ni omitir ninguno.'}
+   Consecuencia directa: si hay ${numECs ?? 'N'} ECs y ${numECs ?? 'N'} UAs, la asignación es EC1→UA1, EC2→UA2, …, EC${numECs ?? 'N'}→UA${numECs ?? 'N'}. No alteres ese orden.
 7. Todo el contenido debe estar en español formal y académico.
-8. El campo "unidadesAprendizaje" de cada elemento de competencia — CORRESPONDENCIA EXACTA:
-   a) REGLA CRÍTICA DE CORRESPONDENCIA: cada EC incluye ÚNICAMENTE las unidades de aprendizaje que el programa docente le asigna explícitamente a ÉSE EC. NUNCA repitas ni copies unidades de otros ECs. Si el EC5 tiene asignada solo "Unidad 5: …", su array "unidadesAprendizaje" contiene SOLO ese objeto. Asignar todas las unidades a un EC cuando solo le corresponde una es un error grave.
-   b) Extrae el nombre de cada unidad EXACTAMENTE como figura en el programa docente (ej: "Unidad 5: Organografía vegetal II, Flor fruto y semilla, Polinización y fertilización").
-   c) Si el programa docente asigna más de una unidad al mismo EC, inclúyelas TODAS como objetos separados; si solo le asigna una, incluye solo esa.
-   d) El array "contenido" de cada unidad debe contener SOLO títulos de temas (sin subtemas, sin numeración, sin puntos). Mínimo 4 títulos y máximo 8 títulos por unidad.
+8. El campo "unidadesAprendizaje" de cada EC — CORRESPONDENCIA EXACTA CON EL PROGRAMA DOCENTE:
+
+   ⚠️ PASO PREVIO OBLIGATORIO — antes de escribir el JSON, construye mentalmente esta tabla:
+      Para cada EC del programa docente, anota qué UA le asigna explícitamente.
+      La relación es DIRECTA: si el programa dice "EC N contiene UA N", eso es lo que va en el JSON.
+
+   REGLAS IRROMPIBLES:
+   a) Cada EC contiene ÚNICAMENTE las UA que el programa docente le asigna a ÉSE EC específico.
+      Si EC3 tiene asignada "Unidad 3: Histología vegetal", su array tendrá ESA unidad y SOLO esa.
+   b) NUNCA muevas una UA de un EC a otro. Si UA3 pertenece a EC3, NO puede aparecer en EC2.
+   c) NUNCA repitas la misma UA en dos ECs distintos. Cada UA aparece en exactamente UN EC.
+   d) La numeración de ECs y UAs es correlativa: EC_N recibe UA_N salvo que el programa
+      docente diga EXPLÍCITAMENTE otra cosa (p.ej. "EC2 abarca Unidad 2 y Unidad 3").
+
+   ❌ PATRÓN INCORRECTO (lo que NO debes hacer — este error arruina el documento):
+      EC1: [UA1]          ← bien
+      EC2: [UA2, UA3]     ← MAL: UA3 no pertenece a EC2; EC2 solo tiene UA2
+      EC3: [UA4]          ← MAL: le falta UA3 que fue robada por EC2; UA4 no le pertenece
+      EC4: [UA4]          ← MAL: UA4 duplicada, ya está en EC3
+      EC5: [UA5]          ← bien
+
+   ✅ PATRÓN CORRECTO (cuando el programa asigna 1 UA por EC):
+      EC1: [UA1]
+      EC2: [UA2]
+      EC3: [UA3]
+      EC4: [UA4]
+      EC5: [UA5]
+
+   e) Extrae el nombre de cada unidad EXACTAMENTE como figura en el programa docente.
+   f) El array "contenido" de cada unidad debe contener SOLO títulos de temas (sin subtemas,
+      sin numeración, sin puntos). Mínimo 4 títulos y máximo 8 títulos por unidad.
 9. Responde ÚNICAMENTE con el JSON. Sin texto antes, sin markdown, sin explicaciones.
 `.trim();
 }
@@ -282,7 +343,7 @@ const CAMPOS_REQUERIDOS = [
   'recursos',
 ];
 
-function validateResponse(data) {
+function validateResponse(data, uaMapping = null) {
   // Campos estructurales obligatorios
   const faltantes = CAMPOS_REQUERIDOS.filter((campo) => !(campo in data));
   if (faltantes.length > 0) {
@@ -291,6 +352,102 @@ function validateResponse(data) {
 
   if (!Array.isArray(data.elementosDeCompetencia) || data.elementosDeCompetencia.length < 1) {
     throw new Error('elementosDeCompetencia debe ser un array con al menos un elemento.');
+  }
+
+  // ── Reparación con mapa pre-extraído (fuente de verdad del PDF) ──────────────
+  // Si tenemos el mapa UA→título extraído directamente del PDF, lo usamos para
+  // corregir asignaciones incorrectas de Claude.
+  if (uaMapping && uaMapping.length > 0) {
+    const ecs = data.elementosDeCompetencia;
+    let reparado = false;
+
+    uaMapping.forEach(({ ua, titulo }) => {
+      const ecIdx = ua - 1; // EC N está en índice N-1
+      if (ecIdx < 0 || ecIdx >= ecs.length) return;
+
+      const ec = ecs[ecIdx];
+      if (!Array.isArray(ec.unidadesAprendizaje)) ec.unidadesAprendizaje = [];
+
+      const tituloNorm = titulo.trim().toLowerCase();
+
+      // Verificar si este EC ya tiene asignada la UA correcta
+      const yaCorrecta = ec.unidadesAprendizaje.some(
+        (u) => (u.nombre ?? '').trim().toLowerCase().includes(tituloNorm.slice(0, 15))
+      );
+
+      if (!yaCorrecta) {
+        // Buscar si la UA está en un EC incorrecto y quitarla de ahí
+        ecs.forEach((otroEc, otroIdx) => {
+          if (otroIdx === ecIdx || !Array.isArray(otroEc.unidadesAprendizaje)) return;
+          const antes = otroEc.unidadesAprendizaje.length;
+          otroEc.unidadesAprendizaje = otroEc.unidadesAprendizaje.filter(
+            (u) => !(u.nombre ?? '').trim().toLowerCase().includes(tituloNorm.slice(0, 15))
+          );
+          if (otroEc.unidadesAprendizaje.length < antes) {
+            console.warn(`[claudeService] UA${ua} "${titulo}" estaba mal en EC${otroIdx + 1}, movida a EC${ecIdx + 1}.`);
+          }
+        });
+
+        // Asignar la UA correcta a este EC (preservar contenido si ya hay algo,
+        // agregar entrada con placeholder de contenido si no)
+        ec.unidadesAprendizaje.push({ nombre: titulo, contenido: [] });
+        reparado = true;
+      }
+
+      // Quitar unidades extra que no corresponden a este EC según el mapa
+      // (solo si el mapa cubre todos los ECs, para no eliminar UAs legítimas en ECs que no aparecen en el mapa)
+      if (uaMapping.length === ecs.length) {
+        const tituloCorrecto = titulo.trim().toLowerCase();
+        const uasCorrectas = [tituloCorrecto]; // este EC solo debe tener esta UA
+        ec.unidadesAprendizaje = ec.unidadesAprendizaje.filter((u) => {
+          const n = (u.nombre ?? '').trim().toLowerCase();
+          // Mantener si coincide con la UA correcta
+          if (n.includes(tituloCorrecto.slice(0, 15)) || tituloCorrecto.includes(n.slice(0, 15))) return true;
+          console.warn(`[claudeService] EC${ecIdx + 1}: UA extra eliminada: "${u.nombre}"`);
+          reparado = true;
+          return false;
+        });
+        // Si quedó vacío (se eliminó todo y no se agregó), agregar la correcta
+        if (ec.unidadesAprendizaje.length === 0) {
+          ec.unidadesAprendizaje.push({ nombre: titulo, contenido: [] });
+          reparado = true;
+        }
+      }
+    });
+
+    if (reparado) {
+      console.warn('[claudeService] ⚠️ Se repararon asignaciones EC→UA usando el mapa extraído del PDF.');
+    } else {
+      console.log('[claudeService] ✓ Asignaciones EC→UA verificadas contra el mapa del PDF.');
+    }
+  } else {
+    // Sin mapa pre-extraído: solo eliminar duplicados entre ECs
+    const ecs = data.elementosDeCompetencia;
+    const vistas = new Map();
+    let hayDuplicados = false;
+    ecs.forEach((ec, i) => {
+      if (!Array.isArray(ec.unidadesAprendizaje)) return;
+      ec.unidadesAprendizaje.forEach((ua) => {
+        const norm = (ua.nombre ?? '').trim().toLowerCase();
+        if (!norm) return;
+        if (vistas.has(norm)) {
+          console.warn(`[claudeService] ⚠️ UA duplicada: "${ua.nombre}" en EC${vistas.get(norm) + 1} y EC${i + 1}. Se elimina de EC${i + 1}.`);
+          hayDuplicados = true;
+        } else {
+          vistas.set(norm, i);
+        }
+      });
+      ec.unidadesAprendizaje = ec.unidadesAprendizaje.filter((ua) => {
+        const norm = (ua.nombre ?? '').trim().toLowerCase();
+        return vistas.get(norm) === i;
+      });
+    });
+    if (hayDuplicados) console.warn('[claudeService] Se eliminaron unidades duplicadas entre ECs.');
+    ecs.forEach((ec, i) => {
+      if (!Array.isArray(ec.unidadesAprendizaje) || ec.unidadesAprendizaje.length === 0) {
+        console.warn(`[claudeService] EC${i + 1} sin unidades de aprendizaje. Revisa el programa docente.`);
+      }
+    });
   }
 
   // Cronograma: validar contra totalSemanas de la carga horaria
@@ -446,7 +603,7 @@ function validateResponse(data) {
  * @param {Object} [datosAsignatura={}]  - Metadatos adicionales (nombre, sigla, semestre…)
  * @returns {Promise<Object>}            - Objeto JSON estructurado del proyecto formativo
  */
-async function generateProyectoFormativo(textoProgramaDocente, datosAsignatura = {}, numECs = null, apiKey, malla, institucional = {}) {
+async function generateProyectoFormativo(textoProgramaDocente, datosAsignatura = {}, numECs = null, apiKey, malla, institucional = {}, uaMapping = null) {
   if (!apiKey || !apiKey.trim()) {
     throw new Error('No se ha configurado la clave de API de Anthropic. Ingresala en Configuración.');
   }
@@ -458,7 +615,7 @@ async function generateProyectoFormativo(textoProgramaDocente, datosAsignatura =
   const client = new Anthropic({ apiKey: apiKey.trim() });
 
   console.log(`[claudeService] malla=${malla ? `"${malla.carrera}"` : 'null (sin malla, se usará descripción textual)'}`);
-  const userPrompt = await buildUserPrompt(textoProgramaDocente, datosAsignatura, numECs, malla, institucional);
+  const userPrompt = await buildUserPrompt(textoProgramaDocente, datosAsignatura, numECs, malla, institucional, uaMapping);
 
   let message;
   try {
@@ -524,7 +681,7 @@ async function generateProyectoFormativo(textoProgramaDocente, datosAsignatura =
   }
 
   // Validar campos obligatorios y restricciones numéricas
-  validateResponse(data);
+  validateResponse(data, uaMapping);
 
   data._mallaData      = malla ?? null;
   data._institucional  = institucional;

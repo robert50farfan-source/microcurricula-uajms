@@ -4,6 +4,7 @@ import ProgressBar from './components/ProgressBar';
 import DownloadButton from './components/DownloadButton';
 import ConfigPanel from './components/ConfigPanel';
 import HelpPanel from './components/HelpPanel';
+import AdminPanel from './components/AdminPanel';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 const API_URL = `${API_BASE}/api/generate`;
@@ -15,7 +16,8 @@ export default function App() {
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [showConfig, setShowConfig] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
+  const [showHelp, setShowHelp]     = useState(false);
+  const [showAdmin, setShowAdmin]   = useState(false);
   const blobUrlRef = useRef(null);
 
   useEffect(() => {
@@ -50,8 +52,8 @@ export default function App() {
 
     const inst = JSON.parse(localStorage.getItem('inst_config') ?? '{}');
     const missingInst = [];
-    if (!inst.nombreFacultad?.trim()) missingInst.push('Nombre de la Facultad');
-    if (!inst.nombreCarrera?.trim())  missingInst.push('Nombre de la carrera');
+    if (!inst.nombreFacultad?.trim()) missingInst.push('Facultad');
+    if (!inst.nombreCarrera?.trim())  missingInst.push('Carrera');
     if (missingInst.length) {
       setErrorMsg(`Completa los datos institucionales antes de generar: ${missingInst.join(' y ')} (icono ⚙ arriba a la derecha).`);
       setStatus('error');
@@ -72,12 +74,13 @@ export default function App() {
       formData.append('pdf', file);
 
       // Datos institucionales del navegador → request
-      formData.append('nombreFacultad',  inst.nombreFacultad  ?? '');
-      formData.append('nombreCarrera',   inst.nombreCarrera   ?? '');
-      formData.append('nombreDocente',   inst.nombreDocente   ?? '');
-      formData.append('emailDocente',    inst.emailDocente    ?? '');
-      formData.append('celDocente',      inst.celDocente      ?? '');
-      formData.append('nombreDirector',  inst.nombreDirector  ?? '');
+      formData.append('nombreUniversidad', inst.nombreUniversidad ?? '');
+      formData.append('nombreFacultad',    inst.nombreFacultad    ?? '');
+      formData.append('nombreCarrera',     inst.nombreCarrera     ?? '');
+      formData.append('nombreDocente',     inst.nombreDocente     ?? '');
+      formData.append('emailDocente',      inst.emailDocente      ?? '');
+      formData.append('celDocente',        inst.celDocente        ?? '');
+      formData.append('nombreDirector',    inst.nombreDirector    ?? '');
 
       // Malla propia del usuario (guardada en localStorage)
       const mallaData = localStorage.getItem('malla_custom_data');
@@ -119,7 +122,8 @@ export default function App() {
 
       {/* ── Modals ─────────────────────────────────────────────────────── */}
       {showConfig && <ConfigPanel onClose={() => setShowConfig(false)} />}
-      {showHelp && <HelpPanel onClose={() => setShowHelp(false)} />}
+      {showHelp   && <HelpPanel   onClose={() => setShowHelp(false)} />}
+      {showAdmin  && <AdminPanel  onClose={() => setShowAdmin(false)} />}
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="bg-white border-b border-slate-200 shadow-sm">
@@ -142,6 +146,17 @@ export default function App() {
             </p>
           </div>
           <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowAdmin(true)}
+              title="Administración del sistema"
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-400
+                         hover:text-blue-900 hover:bg-slate-100 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </button>
             <button
               onClick={() => setShowHelp(true)}
               title="Ayuda / Acerca de"

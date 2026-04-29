@@ -21,3 +21,9 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Variables de entorno con contraseñas y secretos
+backend/.env
+
+# Logs de actividad (datos de runtime)
+backend/data/logs.json
