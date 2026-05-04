@@ -42,7 +42,8 @@ router.post('/', upload.single('pdf'), async (req, res) => {
 
   try {
     const texto = await extractTextFromPDF(req.file.buffer);
-    const client = new Anthropic({ apiKey: apiKey.trim() });
+    const cleanKey = apiKey.replace(/[^a-zA-Z0-9\-_]/g, '');
+    const client = new Anthropic({ apiKey: cleanKey });
 
     // Micro-llamada a Claude para parsear la tabla de la malla
     const message = await client.messages.create({

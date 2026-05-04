@@ -43,8 +43,8 @@ export default function App() {
   const handleGenerate = async () => {
     if (!file) return;
 
-    const apiKey = localStorage.getItem('anthropic_api_key');
-    if (!apiKey || !apiKey.trim()) {
+    const apiKey = (localStorage.getItem('anthropic_api_key') ?? '').replace(/[^a-zA-Z0-9\-_]/g, '');
+    if (!apiKey) {
       setErrorMsg('Configura la clave de API de Anthropic antes de generar (icono ⚙ arriba a la derecha).');
       setStatus('error');
       return;
@@ -88,7 +88,7 @@ export default function App() {
 
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'x-api-key': apiKey.trim() },
+        headers: { 'x-api-key': apiKey },
         body: formData,
       });
 

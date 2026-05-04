@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 
 const API_BASE      = import.meta.env.VITE_API_BASE ?? '';
 const CONFIG_URL    = `${API_BASE}/api/config`;
@@ -27,8 +27,17 @@ export default function ConfigPanel({ onClose }) {
   const [apiKey, setApiKey]         = useState(() => localStorage.getItem('anthropic_api_key') ?? '');
   const [showApiKey, setShowApiKey] = useState(false);
 
-  // Malla curricular
-  const [mallaStatus,    setMallaStatus]    = useState(null);
+  // Malla curricular — estado basado en localStorage (por navegador, no compartido)
+  const [mallaStatus,    setMallaStatus]    = useState(() => {
+    const stored = localStorage.getItem('malla_custom_data');
+    if (!stored) return { uploaded: false };
+    try {
+      const malla = JSON.parse(stored);
+      return { uploaded: true, carrera: malla.carrera, numSemestres: malla.semestres?.length ?? 0 };
+    } catch {
+      return { uploaded: false };
+    }
+  });
   const [mallaFile,      setMallaFile]      = useState(null);
   const [mallaUploading, setMallaUploading] = useState(false);
   const [mallaMsg,       setMallaMsg]       = useState(null);
@@ -46,11 +55,6 @@ export default function ConfigPanel({ onClose }) {
         numInstrumentos: data.numInstrumentos ?? 3,
       })))
       .catch(() => {});
-
-    fetch(MALLA_URL)
-      .then((r) => r.json())
-      .then((data) => setMallaStatus(data))
-      .catch(() => setMallaStatus({ uploaded: false }));
 
     fetch(UNIVERS_URL)
       .then((r) => r.json())
@@ -83,8 +87,9 @@ export default function ConfigPanel({ onClose }) {
 
   const handleMallaUpload = async () => {
     if (!mallaFile) return;
-    const storedKey = localStorage.getItem('anthropic_api_key');
-    if (!storedKey?.trim()) {
+    // Usar la clave del campo actual (no localStorage); conservar solo chars válidos de API key
+    const effectiveKey = apiKey.replace(/[^a-zA-Z0-9\-_]/g, '');
+    if (!effectiveKey) {
       setMallaMsg({ type: 'error', text: 'Configura la clave de API de Anthropic antes de subir la malla.' });
       return;
     }
@@ -93,7 +98,7 @@ export default function ConfigPanel({ onClose }) {
     const fd = new FormData();
     fd.append('pdf', mallaFile);
     try {
-      const res  = await fetch(MALLA_URL, { method: 'POST', headers: { 'x-api-key': storedKey.trim() }, body: fd });
+      const res  = await fetch(MALLA_URL, { method: 'POST', headers: { 'x-api-key': effectiveKey }, body: fd });
       const json = await res.json();
       if (!res.ok) {
         setMallaMsg({ type: 'error', text: json.error ?? 'Error al subir la malla.' });
@@ -110,19 +115,11 @@ export default function ConfigPanel({ onClose }) {
     }
   };
 
-  const handleMallaDelete = async () => {
-    setMallaMsg(null);
-    try {
-      const res = await fetch(MALLA_URL, { method: 'DELETE' });
-      if (res.ok) {
-        localStorage.removeItem('malla_custom_data');
-        setMallaStatus({ uploaded: false });
-        setMallaFile(null);
-        setMallaMsg({ type: 'ok', text: 'Malla eliminada. Se usará descripción textual.' });
-      }
-    } catch {
-      setMallaMsg({ type: 'error', text: 'No se pudo eliminar la malla.' });
-    }
+  const handleMallaDelete = () => {
+    localStorage.removeItem('malla_custom_data');
+    setMallaStatus({ uploaded: false });
+    setMallaFile(null);
+    setMallaMsg({ type: 'ok', text: 'Malla eliminada. Se usará descripción textual.' });
   };
 
   const handleSubmit = async (e) => {
@@ -130,8 +127,9 @@ export default function ConfigPanel({ onClose }) {
     setSaving(true);
     setMsg(null);
     try {
-      if (apiKey.trim()) {
-        localStorage.setItem('anthropic_api_key', apiKey.trim());
+      const cleanKey = apiKey.replace(/[^a-zA-Z0-9\-_]/g, '');
+      if (cleanKey) {
+        localStorage.setItem('anthropic_api_key', cleanKey);
       } else {
         localStorage.removeItem('anthropic_api_key');
       }
