@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import DashboardPanel from './DashboardPanel';
 
 const API_BASE  = import.meta.env.VITE_API_BASE ?? '';
@@ -167,7 +167,7 @@ function InlineForm({ placeholder, initialValue = '', onSave, onCancel, extraFie
 
 // ── Panel principal de administración ────────────────────────────────────────
 
-export default function AdminPanel({ onClose }) {
+export default function AdminPanel({ onClose, fullPage = false }) {
   const savedPwd = sessionStorage.getItem('admin_pwd');
   const [pwd, setPwd]             = useState(savedPwd ?? '');
   const [authenticated, setAuth]  = useState(!!savedPwd);
@@ -311,57 +311,33 @@ export default function AdminPanel({ onClose }) {
     setOpenFac((prev) => ({ ...prev, [`${uid}_${fid}`]: !prev[`${uid}_${fid}`] }));
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-2xl mx-4 flex flex-col max-h-[90vh]">
+  const shieldIcon = (
+    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  );
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-900 flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            </div>
-            <h2 className="font-semibold text-slate-800">Administración del Sistema</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            {authenticated && (
-              <button onClick={handleLogout}
-                className="text-xs text-slate-400 hover:text-red-500 transition-colors px-2 py-1 rounded">
-                Cerrar sesión
-              </button>
-            )}
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
+  const tabs = authenticated && (
+    <div className={`flex border-b border-slate-100 shrink-0 ${fullPage ? 'px-0' : 'px-6'}`}>
+      {[
+        { key: 'gestion',   label: 'Gestión institucional' },
+        { key: 'dashboard', label: 'Dashboard' },
+      ].map((t) => (
+        <button key={t.key} onClick={() => setTab(t.key)}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            tab === t.key
+              ? 'border-blue-900 text-blue-900'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}>
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
 
-        {/* Pestañas — solo visibles tras autenticarse */}
-        {authenticated && (
-          <div className="flex border-b border-slate-100 shrink-0 px-6">
-            {[
-              { key: 'gestion',   label: 'Gestión institucional' },
-              { key: 'dashboard', label: 'Dashboard' },
-            ].map((t) => (
-              <button key={t.key} onClick={() => setTab(t.key)}
-                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                  tab === t.key
-                    ? 'border-blue-900 text-blue-900'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Body */}
-        <div className="overflow-y-auto flex-1 px-6 py-5">
+  const body = (
+    <div className={`overflow-y-auto flex-1 ${fullPage ? 'py-6' : 'px-6 py-5'}`}>
           {!authenticated ? (
             <LoginScreen onLogin={handleLogin} />
           ) : tab === 'dashboard' ? (
@@ -566,7 +542,64 @@ export default function AdminPanel({ onClose }) {
             </div>
           )}
         </div>
+  );
 
+  if (fullPage) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
+        <header className="bg-white border-b border-slate-200 shadow-sm">
+          <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">
+            <div className="w-8 h-8 rounded-lg bg-blue-900 flex items-center justify-center">
+              {shieldIcon}
+            </div>
+            <h1 className="font-semibold text-slate-800 flex-1">Administración del Sistema</h1>
+            <div className="flex items-center gap-3">
+              {authenticated && (
+                <button onClick={handleLogout}
+                  className="text-xs text-slate-400 hover:text-red-500 transition-colors px-2 py-1 rounded">
+                  Cerrar sesión
+                </button>
+              )}
+              <a href="/" className="text-xs text-blue-600 hover:text-blue-900 transition-colors">
+                ← Volver a la aplicación
+              </a>
+            </div>
+          </div>
+          {tabs}
+        </header>
+        <main className="max-w-4xl mx-auto w-full px-6 flex-1 overflow-y-auto">
+          {body}
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-2xl mx-4 flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-900 flex items-center justify-center">
+              {shieldIcon}
+            </div>
+            <h2 className="font-semibold text-slate-800">Administración del Sistema</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            {authenticated && (
+              <button onClick={handleLogout}
+                className="text-xs text-slate-400 hover:text-red-500 transition-colors px-2 py-1 rounded">
+                Cerrar sesión
+              </button>
+            )}
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        {tabs}
+        {body}
       </div>
     </div>
   );
