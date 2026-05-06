@@ -85,8 +85,8 @@ export default function ConfigPanel({ onClose }) {
     }
   };
 
-  const handleMallaUpload = async () => {
-    if (!mallaFile) return;
+  const handleMallaUploadFile = async (file) => {
+    if (!file) return;
     // Usar la clave del campo actual (no localStorage); conservar solo chars válidos de API key
     const effectiveKey = apiKey.replace(/[^a-zA-Z0-9\-_]/g, '');
     if (!effectiveKey) {
@@ -96,7 +96,7 @@ export default function ConfigPanel({ onClose }) {
     setMallaUploading(true);
     setMallaMsg(null);
     const fd = new FormData();
-    fd.append('pdf', mallaFile);
+    fd.append('pdf', file);
     try {
       const res  = await fetch(MALLA_URL, { method: 'POST', headers: { 'x-api-key': effectiveKey }, body: fd });
       const json = await res.json();
@@ -267,24 +267,23 @@ export default function ConfigPanel({ onClose }) {
                 </p>
               )}
               <div className="flex gap-2">
-                <label className="flex-1 flex items-center gap-2 cursor-pointer border border-slate-200 rounded-lg px-3 py-2
-                                  hover:border-blue-300 transition bg-white">
+                <label className={`flex-1 flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2
+                                  transition bg-white ${mallaUploading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:border-blue-300'}`}>
                   <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
                   <span className="text-xs text-slate-500 truncate">
-                    {mallaFile ? mallaFile.name : 'Seleccionar malla en PDF…'}
+                    {mallaUploading ? 'Procesando…' : mallaFile ? mallaFile.name : 'Seleccionar malla en PDF…'}
                   </span>
-                  <input type="file" accept=".pdf" className="sr-only"
-                    onChange={(e) => { setMallaFile(e.target.files[0] ?? null); setMallaMsg(null); }} />
+                  <input type="file" accept=".pdf" className="sr-only" disabled={mallaUploading}
+                    onChange={(e) => {
+                      const file = e.target.files[0] ?? null;
+                      setMallaFile(file);
+                      setMallaMsg(null);
+                      if (file) handleMallaUploadFile(file);
+                    }} />
                 </label>
-                <button type="button" onClick={handleMallaUpload}
-                  disabled={!mallaFile || mallaUploading}
-                  className="px-3 py-2 text-xs font-semibold bg-blue-900 text-white rounded-lg
-                             hover:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0">
-                  {mallaUploading ? 'Procesando…' : 'Subir'}
-                </button>
               </div>
               <p className="text-xs text-slate-400">
                 El PDF debe tener una tabla: primera fila = semestres, filas siguientes = materias por semestre.
