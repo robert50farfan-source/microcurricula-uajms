@@ -5,6 +5,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const fs   = require('fs');
+const path = require('path');
 
 const generateRouter      = require('./routes/generate');
 const configRouter        = require('./routes/config');
@@ -58,9 +60,30 @@ app.use((err, _req, res, _next) => {
   return res.status(500).json({ error: err.message || 'Error interno del servidor.' });
 });
 
+// ─── Inicialización de datos persistentes ────────────────────────────────────
+// Copia archivos de datos por defecto al volumen /config si no existen aún.
+// Esto garantiza que en el primer despliegue el volumen arranque con datos base,
+// y en despliegues posteriores los datos ya guardados no se sobreescriban.
+function initPersistence() {
+  const configDir = path.join(__dirname, 'config');
+  fs.mkdirSync(configDir, { recursive: true });
+
+  const defaults = [
+    { src: path.join(__dirname, 'data/universidades.json'), dst: path.join(configDir, 'universidades.json') },
+  ];
+
+  for (const { src, dst } of defaults) {
+    if (!fs.existsSync(dst) && fs.existsSync(src)) {
+      fs.copyFileSync(src, dst);
+      console.log(`[init] Datos iniciales copiados: ${path.basename(dst)}`);
+    }
+  }
+}
+
 // ─── Inicio ───────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  initPersistence();
   // Precarga los PDFs de fuentes en background para que estén listos antes del primer request
   preloadFuentes();
 });

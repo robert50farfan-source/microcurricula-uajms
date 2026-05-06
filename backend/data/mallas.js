@@ -16,7 +16,7 @@ const MALLAS = {
 };
 
 const CARRERA_DEFAULT = 'informatica';
-const CUSTOM_PATH     = path.join(__dirname, 'malla_custom.json');
+const CUSTOM_PATH     = path.join(__dirname, '../config/malla_custom.json');
 const CONFIG_PATH     = path.join(__dirname, '../config/settings.json');
 
 /** Lee la malla personalizada subida por el usuario. Retorna null si no existe. */

@@ -4,7 +4,7 @@ const fs   = require('fs');
 const path = require('path');
 const { randomUUID } = require('crypto');
 
-const LOG_FILE    = path.join(__dirname, '../data/logs.json');
+const LOG_FILE    = path.join(__dirname, '../config/logs.json');
 const MAX_ENTRIES = 2000;
 
 // ── Persistencia ──────────────────────────────────────────────────────────────

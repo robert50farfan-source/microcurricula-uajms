@@ -9,7 +9,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { extractTextFromPDF } = require('../services/pdfExtractor');
 
 const router      = express.Router();
-const CUSTOM_PATH = path.join(__dirname, '../data/malla_custom.json');
+const CUSTOM_PATH = path.join(__dirname, '../config/malla_custom.json');
 
 const upload = multer({
   storage: multer.memoryStorage(),

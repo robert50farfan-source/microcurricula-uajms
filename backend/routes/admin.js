@@ -7,7 +7,7 @@ const { randomUUID } = require('crypto');
 const adminAuth = require('../middleware/adminAuth');
 
 const router    = express.Router();
-const DATA_FILE = path.join(__dirname, '../data/universidades.json');
+const DATA_FILE = path.join(__dirname, '../config/universidades.json');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
