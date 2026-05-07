@@ -105,10 +105,12 @@ export default function ConfigPanel({ onClose }) {
       if (!res.ok) {
         setMallaMsg({ type: 'error', text: json.error ?? 'Error al subir la malla.' });
       } else {
-        localStorage.setItem('malla_custom_data', JSON.stringify(json.malla));
-        setMallaStatus({ uploaded: true, carrera: json.carrera, numSemestres: json.numSemestres });
+        const carreraDesdeArchivo = file.name.replace(/\.[^.]+$/, '');
+        const mallaGuardada = { ...json.malla, carrera: carreraDesdeArchivo };
+        localStorage.setItem('malla_custom_data', JSON.stringify(mallaGuardada));
+        setMallaStatus({ uploaded: true, carrera: carreraDesdeArchivo, numSemestres: json.numSemestres });
         setMallaFile(null);
-        setMallaMsg({ type: 'ok', text: `Malla "${json.carrera}" cargada (${json.numSemestres} semestres).` });
+        setMallaMsg({ type: 'ok', text: `Malla "${carreraDesdeArchivo}" cargada (${json.numSemestres} semestres).` });
       }
     } catch {
       setMallaMsg({ type: 'error', text: 'No se pudo conectar con el servidor.' });
