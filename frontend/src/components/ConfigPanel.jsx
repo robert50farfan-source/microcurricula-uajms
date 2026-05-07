@@ -41,6 +41,8 @@ export default function ConfigPanel({ onClose }) {
   const [mallaFile,      setMallaFile]      = useState(null);
   const [mallaUploading, setMallaUploading] = useState(false);
   const [mallaMsg,       setMallaMsg]       = useState(null);
+  const [editingCarrera, setEditingCarrera] = useState(false);
+  const [carreraInput,   setCarreraInput]   = useState('');
 
   // Datos de universidades para los combos
   const [universidades, setUniversidades] = useState([]);
@@ -119,7 +121,20 @@ export default function ConfigPanel({ onClose }) {
     localStorage.removeItem('malla_custom_data');
     setMallaStatus({ uploaded: false });
     setMallaFile(null);
+    setEditingCarrera(false);
     setMallaMsg({ type: 'ok', text: 'Malla eliminada. Se usará descripción textual.' });
+  };
+
+  const handleSaveCarrera = () => {
+    const nombre = carreraInput.trim();
+    if (!nombre) return;
+    try {
+      const malla = JSON.parse(localStorage.getItem('malla_custom_data') ?? '{}');
+      malla.carrera = nombre;
+      localStorage.setItem('malla_custom_data', JSON.stringify(malla));
+      setMallaStatus((prev) => ({ ...prev, carrera: nombre }));
+    } catch { /* localStorage corrupto, ignorar */ }
+    setEditingCarrera(false);
   };
 
   const handleSubmit = async (e) => {
@@ -251,8 +266,31 @@ export default function ConfigPanel({ onClose }) {
                     <svg className="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-blue-800 truncate">{mallaStatus.carrera}</p>
+                    <div className="min-w-0 flex-1">
+                      {editingCarrera ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            autoFocus
+                            value={carreraInput}
+                            onChange={(e) => setCarreraInput(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleSaveCarrera(); if (e.key === 'Escape') setEditingCarrera(false); }}
+                            className="text-xs font-medium text-blue-800 border border-blue-300 rounded px-1 py-0.5 w-full bg-white outline-none focus:ring-1 focus:ring-blue-400"
+                          />
+                          <button type="button" onClick={handleSaveCarrera} className="text-xs text-blue-700 hover:text-blue-900 font-semibold shrink-0">OK</button>
+                          <button type="button" onClick={() => setEditingCarrera(false)} className="text-xs text-slate-400 hover:text-slate-600 shrink-0">✕</button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <p className="text-xs font-medium text-blue-800 truncate">{mallaStatus.carrera}</p>
+                          <button type="button" title="Corregir nombre de carrera"
+                            onClick={() => { setCarreraInput(mallaStatus.carrera); setEditingCarrera(true); }}
+                            className="text-blue-400 hover:text-blue-700 shrink-0 transition-colors">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-1.414a2 2 0 01.586-1.414z" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
                       <p className="text-xs text-blue-500">{mallaStatus.numSemestres} semestres</p>
                     </div>
                   </div>
