@@ -276,7 +276,7 @@ export default function ConfigPanel({ onClose }) {
                   <span className="text-xs text-slate-500 truncate">
                     {mallaUploading ? 'Procesando…' : mallaFile ? mallaFile.name : 'Seleccionar malla en PDF…'}
                   </span>
-                  <input type="file" accept=".pdf" className="sr-only" disabled={mallaUploading}
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="sr-only" disabled={mallaUploading}
                     onChange={(e) => {
                       const file = e.target.files[0] ?? null;
                       setMallaFile(file);
@@ -286,7 +286,7 @@ export default function ConfigPanel({ onClose }) {
                 </label>
               </div>
               <p className="text-xs text-slate-400">
-                El PDF debe tener una tabla: primera fila = semestres, filas siguientes = materias por semestre.
+                PDF o imagen (JPG, PNG) con una tabla: primera fila = semestres, filas siguientes = materias.
               </p>
               {mallaMsg && (
                 <div className={`text-xs rounded-lg px-3 py-2 ${

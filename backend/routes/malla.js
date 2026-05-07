@@ -11,14 +11,36 @@ const { extractTextFromPDF } = require('../services/pdfExtractor');
 const router      = express.Router();
 const CUSTOM_PATH = path.join(__dirname, '../config/malla_custom.json');
 
+const ALLOWED_MIME = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype === 'application/pdf') cb(null, true);
-    else cb(Object.assign(new Error('Solo se permiten archivos PDF.'), { status: 400 }));
+    if (ALLOWED_MIME.has(file.mimetype)) cb(null, true);
+    else cb(Object.assign(new Error('Solo se permiten PDF o imágenes (JPG, PNG, WEBP).'), { status: 400 }));
   },
 });
+
+const PARSE_SYSTEM = 'Eres un parser de tablas curriculares. Responde ÚNICAMENTE con JSON válido, sin markdown ni texto adicional.';
+
+const PARSE_PROMPT = `Analiza la tabla de malla curricular.
+La tabla tiene: primera fila con encabezados de semestres (ej. "I", "II", "1er Semestre"), filas siguientes con nombres de materias por semestre (una columna por semestre).
+
+Responde SOLO con este JSON (sin texto antes ni después):
+{
+  "carrera": "<nombre de la carrera si se detecta, o 'Carrera personalizada'>",
+  "semestres": [
+    { "numero": 1, "asignaturas": [{ "nombre": "<nombre materia>" }] },
+    { "numero": 2, "asignaturas": [{ "nombre": "<nombre materia>" }] }
+  ]
+}`;
 
 // GET /api/malla — estado actual de la malla subida
 router.get('/', (_req, res) => {
@@ -31,9 +53,9 @@ router.get('/', (_req, res) => {
   }
 });
 
-// POST /api/malla — subir y parsear malla en PDF
+// POST /api/malla — subir y parsear malla (PDF o imagen)
 router.post('/', upload.single('pdf'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo PDF.' });
+  if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo.' });
 
   const apiKey = req.headers['x-api-key'];
   if (!apiKey || !apiKey.trim()) {
@@ -41,32 +63,42 @@ router.post('/', upload.single('pdf'), async (req, res) => {
   }
 
   try {
-    const texto = await extractTextFromPDF(req.file.buffer);
-    const cleanKey = apiKey.replace(/[^a-zA-Z0-9\-_]/g, '');
-    const client = new Anthropic({ apiKey: cleanKey });
+    const cleanKey = req.headers['x-api-key'].replace(/[^a-zA-Z0-9\-_]/g, '');
+    const client   = new Anthropic({ apiKey: cleanKey });
 
-    // Micro-llamada a Claude para parsear la tabla de la malla
-    const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 4096,
-      system: 'Eres un parser de tablas curriculares. Responde ÚNICAMENTE con JSON válido, sin markdown ni texto adicional.',
-      messages: [{
+    let messageContent;
+
+    if (req.file.mimetype === 'application/pdf') {
+      // ── Flujo PDF: extraer texto y enviarlo como prompt de texto ──────────
+      const texto = await extractTextFromPDF(req.file.buffer);
+      messageContent = [{
         role: 'user',
-        content: `Analiza el siguiente texto extraído de una malla curricular en PDF.
-La tabla tiene: primera fila con encabezados de semestres, siguientes filas con los nombres de las materias de cada semestre (una columna por semestre).
+        content: `${PARSE_PROMPT}\n\nTEXTO DE LA MALLA:\n${texto}`,
+      }];
+    } else {
+      // ── Flujo imagen: enviar la imagen directamente a Claude Vision ───────
+      const imageBase64 = req.file.buffer.toString('base64');
+      const mediaType   = req.file.mimetype; // image/jpeg | image/png | image/webp | image/gif
+      messageContent = [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: mediaType, data: imageBase64 },
+          },
+          {
+            type: 'text',
+            text: PARSE_PROMPT,
+          },
+        ],
+      }];
+    }
 
-Extrae la estructura y responde SOLO con este JSON (sin texto antes ni después):
-{
-  "carrera": "<nombre de la carrera si se detecta, o 'Carrera personalizada'>",
-  "semestres": [
-    { "numero": 1, "asignaturas": [{ "nombre": "<nombre materia>" }] },
-    { "numero": 2, "asignaturas": [{ "nombre": "<nombre materia>" }] }
-  ]
-}
-
-TEXTO DE LA MALLA:
-${texto}`,
-      }],
+    const message = await client.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 4096,
+      system:     PARSE_SYSTEM,
+      messages:   messageContent,
     });
 
     const raw = message.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
@@ -80,20 +112,19 @@ ${texto}`,
       const end   = cleaned.lastIndexOf('}');
       parsed = JSON.parse(cleaned.slice(start, end + 1));
     } catch {
-      return res.status(422).json({ error: 'No se pudo interpretar la estructura de la malla desde el PDF. Verifica que el archivo tenga una tabla con semestres y materias.' });
+      return res.status(422).json({ error: 'No se pudo interpretar la estructura de la malla. Verifica que el archivo tenga una tabla con semestres en la primera fila y materias debajo.' });
     }
 
     if (!Array.isArray(parsed.semestres) || parsed.semestres.length === 0) {
-      return res.status(422).json({ error: 'No se encontraron semestres en la malla. Verifica que el PDF tenga el formato correcto (primera fila = semestres).' });
+      return res.status(422).json({ error: 'No se encontraron semestres en la malla. Verifica que el archivo tenga el formato correcto (primera fila = semestres).' });
     }
 
-    // Construir objeto de malla en el formato que usa el sistema
     const malla = {
-      carrera:      parsed.carrera ?? 'Carrera personalizada',
-      facultad:     '',
-      universidad:  'Universidad Autónoma "Juan Misael Saracho"',
-      categorias:   { azul: 'Formación curricular' },
-      semestres:    parsed.semestres.map((s, i) => ({
+      carrera:     parsed.carrera ?? 'Carrera personalizada',
+      facultad:    '',
+      universidad: 'Universidad Autónoma "Juan Misael Saracho"',
+      categorias:  { azul: 'Formación curricular' },
+      semestres:   parsed.semestres.map((s, i) => ({
         numero:      s.numero ?? (i + 1),
         asignaturas: (s.asignaturas ?? []).map((a) => ({
           nombre:    String(a.nombre ?? '').trim(),
@@ -103,13 +134,11 @@ ${texto}`,
     };
 
     fs.writeFileSync(CUSTOM_PATH, JSON.stringify(malla, null, 2), 'utf8');
-    console.log(`[malla] Malla custom guardada: ${malla.carrera} (${malla.semestres.length} semestres)`);
-    // Devolver la malla completa para que el cliente la guarde en localStorage
-    // y la envíe con cada request de generación (evita estado compartido en servidor)
+    console.log(`[malla] Malla guardada: ${malla.carrera} (${malla.semestres.length} semestres) desde ${req.file.mimetype}`);
     res.json({ ok: true, carrera: malla.carrera, numSemestres: malla.semestres.length, malla });
 
   } catch (err) {
-    console.error('[malla] Error al procesar PDF:', err.message);
+    console.error('[malla] Error al procesar archivo:', err.message);
     res.status(500).json({ error: err.message ?? 'Error al procesar la malla.' });
   }
 });
