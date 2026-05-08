@@ -98,19 +98,19 @@ function Instrucciones() {
       desc: (
         <>
           Dentro de Configuración, en la sección <strong>Malla curricular</strong>, puedes cargar el PDF
-          de la malla de la carrera. Esto permite que el sistema ubique automáticamente la asignatura
-          en la malla (semestre, categoría, prerrequisitos, asignaturas que habilita) sin necesidad
-          de descripción textual. El PDF debe tener una tabla donde la primera fila corresponde a
-          los semestres y las filas siguientes a las materias de cada semestre.
+          o una imagen (JPG, PNG) de la malla de la carrera. Esto permite que el sistema ubique
+          automáticamente la asignatura en la malla (semestre, categoría, prerrequisitos, asignaturas
+          que habilita) sin necesidad de descripción textual. El archivo debe tener una tabla donde
+          la primera fila corresponde a los semestres y las filas siguientes a las materias de cada semestre.
         </>
       ),
     },
     {
       num: 3,
-      titulo: 'Obtener el Programa Docente en PDF',
+      titulo: 'Obtener el Programa Docente (PDF o Word)',
       desc: (
         <>
-          Consigue el <strong>Programa Docente</strong> de la asignatura en formato PDF. Este documento
+          Consigue el <strong>Programa Docente</strong> de la asignatura en formato <strong>PDF o Word (.docx)</strong>. Este documento
           contiene la información académica oficial: datos de la asignatura (sigla, semestre, carga
           horaria), competencias, elementos de competencia, unidades de aprendizaje, distribución
           horaria y bibliografía. El archivo no debe superar los <strong>20 MB</strong>.
@@ -119,10 +119,10 @@ function Instrucciones() {
     },
     {
       num: 4,
-      titulo: 'Cargar el PDF del Programa Docente',
+      titulo: 'Cargar el Programa Docente',
       desc: (
         <>
-          Arrastra el PDF a la zona de carga o haz clic sobre ella para seleccionarlo desde tu
+          Arrastra el PDF o DOCX a la zona de carga, o haz clic sobre ella para seleccionarlo desde tu
           equipo. Una vez seleccionado, verás el nombre del archivo y su tamaño confirmados en
           la zona de carga con fondo verde.
         </>
@@ -134,7 +134,7 @@ function Instrucciones() {
       desc: (
         <>
           Haz clic en el botón <strong>"Generar Proyecto Formativo"</strong>. La aplicación enviará el
-          PDF al servidor, que extraerá el texto y lo procesará con la IA de Claude (Anthropic).
+          documento al servidor, que extraerá el texto y lo procesará con la IA de Claude (Anthropic).
           Este paso puede tardar entre <strong>30 segundos y 2 minutos</strong> dependiendo de la
           extensión del programa docente y la carga de la API. La barra de progreso te indica el estado.
         </>

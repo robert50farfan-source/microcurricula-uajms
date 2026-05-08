@@ -177,7 +177,7 @@ export default function App() {
         <div className="bg-blue-900 text-white rounded-2xl px-7 py-5">
           <h2 className="font-semibold text-base mb-1">¿Qué hace esta herramienta?</h2>
           <p className="text-sm text-blue-200 leading-relaxed">
-            Sube el <strong className="text-white">programa docente en PDF</strong> de cualquier
+            Sube el <strong className="text-white">programa docente en PDF o Word (.docx)</strong> de cualquier
             asignatura de la carrera. La IA analiza el contenido y genera automáticamente
             el <strong className="text-white">Proyecto Formativo completo</strong> (Identificación,
             Malla Curricular, Competencias, Ruta Formativa, Cronograma y Recursos) siguiendo
@@ -246,7 +246,7 @@ export default function App() {
 // ── Step indicator (sub-component, local to App) ─────────────────────────────
 function StepIndicator({ status }) {
   const steps = [
-    { key: 'upload', label: 'Subir PDF' },
+    { key: 'upload', label: 'Subir documento' },
     { key: 'process', label: 'Generando' },
     { key: 'done', label: 'Listo' },
   ];

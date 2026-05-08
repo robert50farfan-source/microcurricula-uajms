@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 /**
  * Props:
  *  - file: File | null        — archivo actualmente seleccionado
- *  - onFileSelected(file)     — callback cuando el usuario elige un PDF válido
+ *  - onFileSelected(file)     — callback cuando el usuario elige un archivo válido (PDF o DOCX)
  *  - onGenerate()             — callback para disparar la generación
  *  - disabled: bool           — deshabilita la interacción mientras procesa
  */
@@ -57,7 +57,7 @@ export default function Uploader({ file, onFileSelected, onGenerate, disabled })
       <div
         role="button"
         tabIndex={disabled ? -1 : 0}
-        aria-label="Zona de carga de PDF"
+        aria-label="Zona de carga del Programa Docente"
         onClick={openPicker}
         onKeyDown={(e) => e.key === 'Enter' && openPicker()}
         onDragOver={handleDragOver}

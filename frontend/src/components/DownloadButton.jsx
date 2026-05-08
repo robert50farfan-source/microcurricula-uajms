@@ -1,11 +1,11 @@
 /**
  * Props:
  *  - downloadUrl: string  — blob URL del .docx generado
- *  - fileName: string     — nombre original del PDF subido (se usa para sugerir nombre del .docx)
+ *  - fileName: string     — nombre original del archivo subido (se usa para sugerir nombre del .docx)
  */
 export default function DownloadButton({ downloadUrl, fileName }) {
   const docxName = fileName
-    ? fileName.replace(/\.pdf$/i, '') + '-proyecto-formativo.docx'
+    ? fileName.replace(/\.(pdf|docx)$/i, '') + '-proyecto-formativo.docx'
     : 'proyecto-formativo.docx';
 
   return (
