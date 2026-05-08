@@ -7,10 +7,13 @@ const path    = require('path');
 const router  = express.Router();
 
 const { extractTextFromPDF, countElementosDeCompetencia, extractUnidadesAprendizaje } = require('../services/pdfExtractor');
+const { extractTextFromDocx }       = require('../services/docxExtractor');
 const { generateProyectoFormativo } = require('../services/claudeService');
 const { generateDocx }              = require('../services/docxGenerator');
 const { registrarEvento }           = require('../services/statsService');
 // mallas no se necesita aquí: la malla siempre viene del cliente (localStorage)
+
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 const CONFIG_PATH = path.join(__dirname, '../config/settings.json');
 function readConfig() {
@@ -18,15 +21,17 @@ function readConfig() {
   catch { return {}; }
 }
 
-// ─── Multer: memoria, solo PDF, 10 MB ────────────────────────────────────────
+// ─── Multer: memoria, PDF o DOCX, 20 MB ──────────────────────────────────────
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype === 'application/pdf') {
+    const isDocx = file.mimetype === DOCX_MIME ||
+                   file.originalname?.toLowerCase().endsWith('.docx');
+    if (file.mimetype === 'application/pdf' || isDocx) {
       cb(null, true);
     } else {
-      cb(Object.assign(new Error('Solo se aceptan archivos PDF.'), { status: 400 }));
+      cb(Object.assign(new Error('Solo se aceptan archivos PDF o DOCX.'), { status: 400 }));
     }
   },
 });
@@ -35,7 +40,7 @@ const upload = multer({
 router.post('/', upload.single('pdf'), async (req, res) => {
   // 1. Validar que llegó el archivo
   if (!req.file) {
-    return res.status(400).json({ error: 'No se recibió ningún archivo. Envía el PDF en el campo "pdf".' });
+    return res.status(400).json({ error: 'No se recibió ningún archivo. Envía el Programa Docente en PDF o DOCX.' });
   }
 
   // 1b. Leer datos institucionales enviados por el cliente (guardados en su navegador)
@@ -58,8 +63,11 @@ router.post('/', upload.single('pdf'), async (req, res) => {
   }
 
   try {
-    // 2. Extraer texto del PDF
-    const textoPDF = await extractTextFromPDF(req.file.buffer);
+    // 2. Extraer texto del documento (PDF o DOCX)
+    const isDocx   = req.file.mimetype === DOCX_MIME || req.file.originalname?.toLowerCase().endsWith('.docx');
+    const textoPDF = isDocx
+      ? await extractTextFromDocx(req.file.buffer)
+      : await extractTextFromPDF(req.file.buffer);
 
     // 2b. Detectar número de ECs en el PDF para pasarlo como restricción dura
     const numECsDetectados = countElementosDeCompetencia(textoPDF);

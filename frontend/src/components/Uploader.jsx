@@ -12,10 +12,14 @@ export default function Uploader({ file, onFileSelected, onGenerate, disabled })
   const [dragging, setDragging] = useState(false);
   const [error, setError]       = useState('');
 
+  const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
   const validate = (f) => {
     if (!f) return false;
-    if (f.type !== 'application/pdf') {
-      setError('Solo se aceptan archivos PDF (.pdf).');
+    const isPdf  = f.type === 'application/pdf';
+    const isDocx = f.type === DOCX_MIME || f.name?.toLowerCase().endsWith('.docx');
+    if (!isPdf && !isDocx) {
+      setError('Solo se aceptan archivos PDF (.pdf) o Word (.docx).');
       return false;
     }
     if (f.size > 20 * 1024 * 1024) {
@@ -91,7 +95,7 @@ export default function Uploader({ file, onFileSelected, onGenerate, disabled })
           <div className="text-center">
             <p className="text-sm font-semibold text-green-700 break-all">{file.name}</p>
             <p className="text-xs text-green-600 mt-0.5">
-              {(file.size / 1024).toFixed(0)} KB · PDF listo para procesar
+              {(file.size / 1024).toFixed(0)} KB · listo para procesar
             </p>
             {!disabled && (
               <p className="text-xs text-slate-400 mt-1">
@@ -102,16 +106,16 @@ export default function Uploader({ file, onFileSelected, onGenerate, disabled })
         ) : (
           <div className="text-center">
             <p className="text-sm font-medium text-slate-700">
-              Arrastra el <span className="text-blue-600 font-semibold">Programa Docente en PDF</span> aquí
+              Arrastra el <span className="text-blue-600 font-semibold">Programa Docente</span> aquí
             </p>
-            <p className="text-xs text-slate-400 mt-1">o haz clic para seleccionar · Máx. 20 MB</p>
+            <p className="text-xs text-slate-400 mt-1">PDF o Word (.docx) · o haz clic para seleccionar · Máx. 20 MB</p>
           </div>
         )}
 
         <input
           ref={inputRef}
           type="file"
-          accept="application/pdf,.pdf"
+          accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
           className="hidden"
           onChange={handleChange}
           disabled={disabled}
