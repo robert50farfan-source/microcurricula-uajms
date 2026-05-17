@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const API_BASE   = import.meta.env.VITE_API_BASE ?? '';
-const STATS_URL  = `${API_BASE}/api/admin/stats`;
-const LIVE_URL   = `${API_BASE}/api/admin/stats/live`;
+const API_BASE    = import.meta.env.VITE_API_BASE ?? '';
+const STATS_URL   = `${API_BASE}/api/admin/stats`;
+const LIVE_URL    = `${API_BASE}/api/admin/stats/live`;
+const ERRORS_URL  = `${API_BASE}/api/admin/stats/errores`;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -133,12 +134,13 @@ function DiaChart({ porDia }) {
 // ── Dashboard principal ───────────────────────────────────────────────────────
 
 export default function DashboardPanel({ pwd }) {
-  const [stats,   setStats]   = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState('');
-  const [live,    setLive]    = useState(false);   // SSE conectado
-  const [pulse,   setPulse]   = useState(false);   // animación al recibir dato nuevo
-  const [lastUpd, setLastUpd] = useState(null);
+  const [stats,        setStats]        = useState(null);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState('');
+  const [live,         setLive]         = useState(false);
+  const [pulse,        setPulse]        = useState(false);
+  const [lastUpd,      setLastUpd]      = useState(null);
+  const [cleaningErr,  setCleaningErr]  = useState(false);
   const esRef = useRef(null);
 
   const fetchStats = useCallback(async () => {
@@ -187,6 +189,23 @@ export default function DashboardPanel({ pwd }) {
     return () => clearInterval(id);
   }, [live, fetchStats]);
 
+  const handleLimpiarErrores = async () => {
+    if (!confirm(`¿Eliminar los ${resumen?.errores ?? 0} registros con error? Esta acción no se puede deshacer.`)) return;
+    setCleaningErr(true);
+    try {
+      const res = await fetch(ERRORS_URL, {
+        method: 'DELETE',
+        headers: { 'x-admin-password': pwd },
+      });
+      if (!res.ok) throw new Error('Error al limpiar registros.');
+      await fetchStats();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setCleaningErr(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 text-slate-400 text-sm">
@@ -224,6 +243,14 @@ export default function DashboardPanel({ pwd }) {
             className="text-xs text-blue-600 hover:text-blue-800 transition-colors">
             Refrescar
           </button>
+          {(resumen?.errores ?? 0) > 0 && (
+            <button
+              onClick={handleLimpiarErrores}
+              disabled={cleaningErr}
+              className="text-xs text-red-500 hover:text-red-700 transition-colors disabled:opacity-40">
+              {cleaningErr ? 'Limpiando…' : `Limpiar ${resumen.errores} error${resumen.errores !== 1 ? 'es' : ''}`}
+            </button>
+          )}
         </div>
       </div>
 

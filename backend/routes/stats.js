@@ -2,7 +2,7 @@
 
 const express   = require('express');
 const adminAuth = require('../middleware/adminAuth');
-const { computarStats, agregarClienteSSE } = require('../services/statsService');
+const { computarStats, agregarClienteSSE, limpiarErrores } = require('../services/statsService');
 
 const router = express.Router();
 
@@ -40,6 +40,12 @@ router.get('/live', (req, res) => {
   }, 25_000);
 
   req.on('close', () => clearInterval(ping));
+});
+
+// DELETE /api/admin/stats/errores  — elimina todos los registros fallidos
+router.delete('/errores', adminAuth, (_req, res) => {
+  const result = limpiarErrores();
+  res.json(result);
 });
 
 module.exports = router;

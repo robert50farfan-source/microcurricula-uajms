@@ -142,4 +142,14 @@ function computarStats() {
   };
 }
 
-module.exports = { registrarEvento, computarStats, agregarClienteSSE };
+// ── Limpieza de logs ──────────────────────────────────────────────────────────
+
+function limpiarErrores() {
+  const logs      = readLogs();
+  const filtrados = logs.filter((l) => l.exito);
+  writeLogs(filtrados);
+  notificarClientes();
+  return { eliminados: logs.length - filtrados.length, restantes: filtrados.length };
+}
+
+module.exports = { registrarEvento, computarStats, agregarClienteSSE, limpiarErrores };
