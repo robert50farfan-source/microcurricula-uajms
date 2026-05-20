@@ -398,17 +398,17 @@ export default function ConfigPanel({ onClose }) {
               )}
 
               <Field label="Nombre del docente" name="nombreDocente" value={form.nombreDocente ?? ''}
-                onChange={handleChange} placeholder="Ej: Dr. Juan Pérez" />
+                onChange={handleChange} placeholder="Ej: Dr. Juan Pérez" required />
 
               <div className="grid grid-cols-2 gap-3">
                 <Field label="E-mail del docente" name="emailDocente" value={form.emailDocente ?? ''}
-                  onChange={handleChange} placeholder="Ej: docente@uajms.edu.bo" />
+                  onChange={handleChange} placeholder="Ej: docente@uajms.edu.bo" optional />
                 <Field label="Celular del docente" name="celDocente" value={form.celDocente ?? ''}
-                  onChange={handleChange} placeholder="Ej: 77123456" />
+                  onChange={handleChange} placeholder="Ej: 77123456" optional />
               </div>
 
               <Field label="Nombre del/la director/a" name="nombreDirector" value={form.nombreDirector ?? ''}
-                onChange={handleChange} placeholder="Ej: Ing. María García" />
+                onChange={handleChange} placeholder="Ej: Ing. María García" required />
             </fieldset>
 
             <hr className="border-slate-100" />
@@ -485,11 +485,13 @@ function SelectField({ label, name, value, onChange, required, placeholder, opti
   );
 }
 
-function Field({ label, name, value, onChange, required, placeholder }) {
+function Field({ label, name, value, onChange, required, optional, placeholder }) {
   return (
     <div className="flex flex-col gap-1">
       <label className="text-sm font-medium text-slate-700">
-        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+        {label}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
+        {optional && <span className="text-slate-400 font-normal ml-1 text-xs">(opcional)</span>}
       </label>
       <input
         type="text"

@@ -50,8 +50,10 @@ export default function App() {
 
     const inst = JSON.parse(localStorage.getItem('inst_config') ?? '{}');
     const missingInst = [];
-    if (!inst.nombreFacultad?.trim()) missingInst.push('Facultad');
-    if (!inst.nombreCarrera?.trim())  missingInst.push('Carrera');
+    if (!inst.nombreFacultad?.trim())  missingInst.push('Facultad');
+    if (!inst.nombreCarrera?.trim())   missingInst.push('Carrera');
+    if (!inst.nombreDocente?.trim())   missingInst.push('Nombre del docente');
+    if (!inst.nombreDirector?.trim())  missingInst.push('Nombre del/la director/a');
     if (missingInst.length) {
       setErrorMsg(`Completa los datos institucionales antes de generar: ${missingInst.join(' y ')} (icono ⚙ arriba a la derecha).`);
       setStatus('error');

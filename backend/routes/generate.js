@@ -54,8 +54,10 @@ router.post('/', upload.single('pdf'), async (req, res) => {
     nombreDirector:    (req.body.nombreDirector    ?? '').trim(),
   };
   const missingFields = [];
-  if (!institucional.nombreFacultad) missingFields.push('Nombre de la Facultad');
-  if (!institucional.nombreCarrera)  missingFields.push('Nombre de la carrera');
+  if (!institucional.nombreFacultad)  missingFields.push('Nombre de la Facultad');
+  if (!institucional.nombreCarrera)   missingFields.push('Nombre de la carrera');
+  if (!institucional.nombreDocente)   missingFields.push('Nombre del docente');
+  if (!institucional.nombreDirector)  missingFields.push('Nombre del/la director/a');
   if (missingFields.length) {
     return res.status(400).json({
       error: `Completa los siguientes campos en Configuración antes de generar: ${missingFields.join(', ')}.`,
