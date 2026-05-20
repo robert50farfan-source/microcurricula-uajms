@@ -5,17 +5,24 @@ import DownloadButton from './components/DownloadButton';
 import ConfigPanel from './components/ConfigPanel';
 import HelpPanel from './components/HelpPanel';
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? '';
-const API_URL = `${API_BASE}/api/generate`;
+const API_BASE    = import.meta.env.VITE_API_BASE ?? '';
+const API_URL     = `${API_BASE}/api/generate`;
+const VALIDAR_URL = `${API_BASE}/api/validar-documento`;
 
 export default function App() {
-  const [status, setStatus] = useState('idle');    // idle | uploading | processing | done | error
-  const [file, setFile] = useState(null);
+  const [status, setStatus]           = useState('idle'); // idle | uploading | processing | done | error
+  const [file, setFile]               = useState(null);
   const [progressMsg, setProgressMsg] = useState('');
   const [downloadUrl, setDownloadUrl] = useState(null);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [showConfig, setShowConfig] = useState(false);
-  const [showHelp, setShowHelp]     = useState(false);
+  const [errorMsg, setErrorMsg]       = useState('');
+  const [showConfig, setShowConfig]   = useState(false);
+  const [showHelp, setShowHelp]       = useState(false);
+
+  // Validación del documento cargado
+  // 'idle' | 'validating' | 'valid' | 'warning'
+  const [validationState, setValidationState] = useState('idle');
+  const [validationMsg,   setValidationMsg]   = useState('');
+
   const blobUrlRef = useRef(null);
 
   useEffect(() => {
@@ -24,9 +31,11 @@ export default function App() {
     };
   }, []);
 
-  const handleFileSelected = (selectedFile) => {
+  const handleFileSelected = async (selectedFile) => {
     setFile(selectedFile);
-    // Reset previous results when a new file is chosen
+    setValidationState('idle');
+    setValidationMsg('');
+
     if (status === 'done' || status === 'error') {
       setStatus('idle');
       setErrorMsg('');
@@ -35,6 +44,25 @@ export default function App() {
         blobUrlRef.current = null;
         setDownloadUrl(null);
       }
+    }
+
+    // Validar si el archivo es un programa docente
+    setValidationState('validating');
+    try {
+      const fd = new FormData();
+      fd.append('pdf', selectedFile);
+      const res  = await fetch(VALIDAR_URL, { method: 'POST', body: fd });
+      const json = await res.json();
+      if (json.valido) {
+        setValidationState('valid');
+        setValidationMsg(json.razon);
+      } else {
+        setValidationState('warning');
+        setValidationMsg(json.razon);
+      }
+    } catch {
+      // Si falla la validación por red, no bloqueamos al usuario
+      setValidationState('idle');
     }
   };
 
@@ -201,6 +229,8 @@ export default function App() {
             onGenerate={handleGenerate}
             file={file}
             disabled={isWorking}
+            validationState={validationState}
+            validationMsg={validationMsg}
           />
 
           {/* Progress bar */}

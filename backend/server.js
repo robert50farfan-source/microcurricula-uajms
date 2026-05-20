@@ -9,6 +9,7 @@ const fs   = require('fs');
 const path = require('path');
 
 const generateRouter      = require('./routes/generate');
+const validarRouter       = require('./routes/validar');
 const configRouter        = require('./routes/config');
 const carrerasRouter      = require('./routes/carreras');
 const mallaRouter         = require('./routes/malla');
@@ -34,7 +35,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // ─── Rutas ────────────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
-app.use('/api/generate',      generateRouter);
+app.use('/api/generate',           generateRouter);
+app.use('/api/validar-documento',  validarRouter);
 app.use('/api/config',        configRouter);
 app.use('/api/carreras',      carrerasRouter);
 app.use('/api/malla',         mallaRouter);
