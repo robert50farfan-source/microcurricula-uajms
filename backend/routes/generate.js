@@ -100,7 +100,10 @@ router.post('/', upload.single('pdf'), async (req, res) => {
     const apiKey = req.headers['x-api-key'];
     const datosProyecto = await generateProyectoFormativo(textoPDF, {}, numECsDetectados, apiKey, malla, institucional, uaMapping);
 
-    // Registrar evento exitoso en el log de estadísticas
+    // 4. Construir el documento Word
+    const docxBuffer = await generateDocx(datosProyecto);
+
+    // Registrar evento exitoso en el log de estadísticas (solo tras generar el .docx con éxito)
     registrarEvento({
       universidad: institucional.nombreUniversidad,
       facultad:    institucional.nombreFacultad,
@@ -109,9 +112,6 @@ router.post('/', upload.single('pdf'), async (req, res) => {
       asignatura:  datosProyecto?.identificacion?.asignatura ?? '',
       exito:       true,
     });
-
-    // 4. Construir el documento Word
-    const docxBuffer = await generateDocx(datosProyecto);
 
     // 5. Responder con el archivo
     res.setHeader('Content-Type',        'application/vnd.openxmlformats-officedocument.wordprocessingml.document');

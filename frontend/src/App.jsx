@@ -24,6 +24,7 @@ export default function App() {
   const [validationMsg,   setValidationMsg]   = useState('');
 
   const blobUrlRef = useRef(null);
+  const isGeneratingRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -67,7 +68,7 @@ export default function App() {
   };
 
   const handleGenerate = async () => {
-    if (!file) return;
+    if (!file || isGeneratingRef.current) return;
 
     const apiKey = (localStorage.getItem('anthropic_api_key') ?? '').replace(/[^a-zA-Z0-9\-_]/g, '');
     if (!apiKey) {
@@ -88,6 +89,7 @@ export default function App() {
       return;
     }
 
+    isGeneratingRef.current = true;
     setStatus('uploading');
     setProgressMsg('Enviando archivo al servidor...');
     setErrorMsg('');
@@ -140,6 +142,8 @@ export default function App() {
     } catch (err) {
       setErrorMsg(err.message ?? 'Error inesperado. Intenta nuevamente.');
       setStatus('error');
+    } finally {
+      isGeneratingRef.current = false;
     }
   };
 
