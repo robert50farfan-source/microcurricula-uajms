@@ -36,14 +36,16 @@ const CLR = {
   naranja: 'BFBFBF',   // gris medio-claro
   rojo: 'A5A5A5',   // gris medio
   morado: '7F7F7F',   // gris medio-oscuro
-  // UI
-  navy: '1F4E79',
-  secBg: '2E74B5',
-  tblHdr: 'BDD7EE',
-  ecHdr: 'D6E4F0',
+  // UI — tonos claros para minimizar consumo de tinta al imprimir.
+  // `navy` se usa solo como color de TEXTO (nunca como relleno de celda).
+  navy: '000000',
+  hdrBg: 'BDD7EE',   // fondo de encabezados principales de tabla (antes navy oscuro)
+  secBg: 'D9E6F5',   // fondo de barras de sección y banner superior (antes 2E74B5)
+  tblHdr: 'E4EEF9',  // fondo de subencabezados
+  ecHdr: 'F2F7FC',   // fondo de descripción de Elemento de Competencia
   lgray: 'F2F2F2',
   dgray: 'D9D9D9',
-  cronAct: '4472C4',
+  cronAct: 'BDD7EE', // resalte de semestre activo en cronograma (antes 4472C4)
   white: 'FFFFFF',
 };
 
@@ -188,7 +190,7 @@ const secTitle = (num, text) => [
     spacing: { before: 100, after: 80 },
     shading: shade(CLR.secBg),
     indent: { left: 80 },
-    children: [run(num ? `${num}. ${text}` : text, { bold: true, size: SZ.lg, color: CLR.white })],
+    children: [run(num ? `${num}. ${text}` : text, { bold: true, size: SZ.lg, color: CLR.navy })],
   }),
 ];
 
@@ -246,13 +248,13 @@ function buildHeader(data) {
       rows: [new TableRow({
         children: [
           mkCell([
-            p('UNIVERSIDAD AUTÓNOMA "JUAN MISAEL SARACHO"', { bold: true, align: AlignmentType.CENTER, size: SZ.md, color: CLR.white, after: 30 }),
-            p(facultad, { bold: true, align: AlignmentType.CENTER, size: SZ.sm, color: CLR.white, after: 30 }),
-            p(`CARRERA DE ${carrera}`, { bold: true, align: AlignmentType.CENTER, size: SZ.sm, color: CLR.white, after: 0 }),
-          ], { w: c1, bg: CLR.navy }),
+            p('UNIVERSIDAD AUTÓNOMA "JUAN MISAEL SARACHO"', { bold: true, align: AlignmentType.CENTER, size: SZ.md, color: CLR.navy, after: 30 }),
+            p(facultad, { bold: true, align: AlignmentType.CENTER, size: SZ.sm, color: CLR.navy, after: 30 }),
+            p(`CARRERA DE ${carrera}`, { bold: true, align: AlignmentType.CENTER, size: SZ.sm, color: CLR.navy, after: 0 }),
+          ], { w: c1, bg: CLR.hdrBg }),
           mkCell([
-            p('PROYECTO FORMATIVO', { bold: true, align: AlignmentType.CENTER, size: SZ.lg, color: CLR.white, after: 40 }),
-            p('Versión: V2', { align: AlignmentType.CENTER, size: SZ.sm, color: CLR.white, after: 0 }),
+            p('PROYECTO FORMATIVO', { bold: true, align: AlignmentType.CENTER, size: SZ.lg, color: CLR.navy, after: 40 }),
+            p('Versión: V2', { align: AlignmentType.CENTER, size: SZ.sm, color: CLR.navy, after: 0 }),
           ], { w: c2, bg: CLR.secBg }),
         ]
       })],
@@ -426,8 +428,8 @@ function buildMallaCurricular(data) {
   const headerRow = new TableRow({
     children: malla.semestres.map((_, i) =>
       mkCell(`${ORDS[i]} Sem`, {
-        w: colWidths[i], bg: CLR.navy, bold: true,
-        color: CLR.white, align: AlignmentType.CENTER,
+        w: colWidths[i], bg: CLR.hdrBg, bold: true,
+        color: CLR.navy, align: AlignmentType.CENTER,
       }),
     ),
   });
@@ -531,11 +533,11 @@ function buildCompetencias(data) {
   // Header row 1 — merged groups
   const ecH1 = new TableRow({
     children: [
-      mkCell('15. Elemento de\nCompetencia', { w: wE, bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER, rowspan: 2, size: SZ.xs }),
-      mkCell('16. Evidencias', { w: wEv, bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER, rowspan: 2, size: SZ.xs }),
-      mkCell('17. Nivel de\nLogro', { w: wN, bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER, rowspan: 2, size: SZ.xs }),
-      mkCell('18. Evaluación', { w: wInd + wIns + wPo, bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER, colspan: 3, size: SZ.xs }),
-      mkCell('19. Distribución\nde Carga\nHoraria', { w: wDH, bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER, rowspan: 2, size: SZ.xs }),
+      mkCell('15. Elemento de\nCompetencia', { w: wE, bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER, rowspan: 2, size: SZ.xs }),
+      mkCell('16. Evidencias', { w: wEv, bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER, rowspan: 2, size: SZ.xs }),
+      mkCell('17. Nivel de\nLogro', { w: wN, bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER, rowspan: 2, size: SZ.xs }),
+      mkCell('18. Evaluación', { w: wInd + wIns + wPo, bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER, colspan: 3, size: SZ.xs }),
+      mkCell('19. Distribución\nde Carga\nHoraria', { w: wDH, bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER, rowspan: 2, size: SZ.xs }),
     ]
   });
 
@@ -674,7 +676,7 @@ function buildRutaFormativa(data) {
       rows: [
         new TableRow({
           children: [
-            mkCell(`20.${idx + 1} ELEMENTO DE COMPETENCIA (${code})`, { w: CW, bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER }),
+            mkCell(`20.${idx + 1} ELEMENTO DE COMPETENCIA (${code})`, { w: CW, bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER }),
           ],
         }),
         new TableRow({
@@ -748,9 +750,9 @@ function buildRutaFormativa(data) {
         // Saber Conocer | Saber Hacer | Saber Ser  (colspan=2 cada una → 1/3 c/u)
         new TableRow({
           children: [
-            mkCell('Saber Conocer', { w: cThird, bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER, colspan: 2 }),
-            mkCell('Saber Hacer', { w: cThird, bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER, colspan: 2 }),
-            mkCell('Saber Ser', { w: cThirdR, bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER, colspan: 2 }),
+            mkCell('Saber Conocer', { w: cThird, bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER, colspan: 2 }),
+            mkCell('Saber Hacer', { w: cThird, bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER, colspan: 2 }),
+            mkCell('Saber Ser', { w: cThirdR, bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER, colspan: 2 }),
           ],
         }),
         new TableRow({
@@ -763,8 +765,8 @@ function buildRutaFormativa(data) {
         // Unidad de Aprendizaje | Contenido  (colspan=2 → 1/3 | colspan=4 → 2/3)
         new TableRow({
           children: [
-            mkCell('Unidad de Aprendizaje', { w: cThird, bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER, colspan: 2 }),
-            mkCell('Contenido', { w: c6 * 4 + c6Last, bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER, colspan: 4 }),
+            mkCell('Unidad de Aprendizaje', { w: cThird, bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER, colspan: 2 }),
+            mkCell('Contenido', { w: c6 * 4 + c6Last, bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER, colspan: 4 }),
           ],
         }),
         new TableRow({
@@ -834,11 +836,11 @@ function buildCronograma(data) {
 
   const headerRow = new TableRow({
     children: [
-      mkCell('N°', { w: wNro, bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER, size: SZ.xs }),
-      mkCell('Elemento de Competencia', { w: wElem, bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER, size: SZ.xs }),
-      mkCell('H', { w: wH, bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER, size: SZ.xs }),
+      mkCell('N°', { w: wNro, bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER, size: SZ.xs }),
+      mkCell('Elemento de Competencia', { w: wElem, bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER, size: SZ.xs }),
+      mkCell('H', { w: wH, bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER, size: SZ.xs }),
       ...Array.from({ length: nSem }, (_, i) =>
-        mkCell(String(i + 1), { w: semWidths[i], bg: CLR.navy, bold: true, color: CLR.white, align: AlignmentType.CENTER, size: SZ.xs }),
+        mkCell(String(i + 1), { w: semWidths[i], bg: CLR.hdrBg, bold: true, color: CLR.navy, align: AlignmentType.CENTER, size: SZ.xs }),
       ),
     ]
   });
