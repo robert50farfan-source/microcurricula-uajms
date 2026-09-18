@@ -273,7 +273,7 @@ export default function App() {
       <footer className="text-center py-5 text-xs text-slate-400 border-t border-slate-200 bg-white">
         Documento generado siguiendo la plantilla{' '}
         <span className="font-medium text-slate-500">Proyecto Formativo UAJMS v2</span>
-        {' '}· Powered by Claude AI - LRFS · FIRNT — Ingenieria Informatica
+        {' '}· Powered by Claude AI - Ing. Robert Farfán · FIRNT — Ingeniería Informática
       </footer>
     </div>
   );
